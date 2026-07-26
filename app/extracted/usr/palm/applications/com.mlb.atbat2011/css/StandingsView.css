@@ -1,0 +1,46 @@
+/* Native standings table (views/StandingsList.js, views/StandingsTeamRow.js)
+   -- replaces the old WebView pointed at the now-dead
+   http://wap.mlb.com/atbat/palm/standings/. */
+.standingsGroupsContainer {
+	padding: 10px;
+}
+.standingsGroup {
+	background-color: #dbdbd0;
+	border: 1px solid #9c9c8d;
+	-webkit-border-radius: 5px;
+	margin-bottom: 15px;
+	overflow: hidden;
+}
+.standingsGroupHeader {
+	background-color: #292929;
+	color: #ccc;
+	font-weight: bold;
+	font-size: 14px;
+	padding: 6px 10px;
+}
+.standingsHeaderRow {
+	background-color: #efefe6;
+	border-bottom: 1px solid #afaf9f;
+	font-size: 0.75em;
+	font-weight: bold;
+	color: #87877e;
+	padding: 4px 10px;
+}
+.standingsTeamRow {
+	padding: 6px 10px;
+	border-bottom: 1px solid #c3c3be;
+	font-size: 0.85em;
+	background-color: #fff;
+}
+.standingsTeamRow:last-of-type {
+	border-bottom: 0;
+}
+.standingsTeamName {
+	font-weight: bold;
+	color: #333;
+}
+.standingsCol {
+	width: 40px;
+	text-align: right;
+	padding-right: 6px;
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport"
+	content="width=device-width initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MLB.com At Bat 11</title>
+<script src="/usr/palm/frameworks/enyo/1.0/framework/enyo.js" launch="debug"
+	type="text/javascript"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+	enyo.setAllowedOrientation("right");
+	var main = new mlb.Main();
+	main.renderInto(document.body);
+
+	// Best-effort: stop the background audio Luna service when this card
+	// is discarded (thrown away). Confirmed live that with no cleanup at
+	// all here, the service keeps playing indefinitely after the card is
+	// gone -- the only way to silence it was restarting the whole
+	// TouchPad. The service call itself is fire-and-forget (its response
+	// callback may never run once the page is torn down), but the
+	// underlying Luna Service Bus dispatch happens synchronously in the
+	// native bridge when .call() is invoked, so the stop request still
+	// reaches the service even though nothing here waits for its answer.
+	window.addEventListener("unload", function () {
+		try {
+			if (main && main.$ && main.$.audioFlow && main.$.audioFlow.feed) {
+				main.$.audioFlow.stopAudio();
+			}
+		} catch (e) {}
+	});
+</script>
+
+
+
+</body>
+</html>

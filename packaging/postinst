@@ -1,0 +1,49 @@
+#!/bin/sh
+# Registers com.mlb.atbat2011.service on the LS2 (Luna Service Bus 2). This
+# step exists because plain palm-install / webOS Quick Install only copy the
+# service's files into place; historically that alone was NOT enough --
+# without an explicit LS2 registration, any palm://com.mlb.atbat2011.service/
+# call would fail with "Service does not exist" even with the files present
+# on disk (confirmed by direct testing on this project, and independently by
+# a related prior-art project on the same hardware/OS build -- see
+# CLAUDE.md/project plan for the exact commands each project needed to run
+# by hand before this file existed).
+#
+# This file is the fix: webOS's on-device installer runs the package's
+# ipkg-style postinst maintainer script automatically, as root, right after
+# install -- confirmed live this session (installed via Quick Install with
+# no other step taken, and the service was immediately callable). Baking
+# the registration in here means end users installing this app never have
+# to run any manual step or extra tool, regardless of which installer they
+# use.
+#
+# Idempotent and safe to (and expected to) run on every install/reinstall --
+# webOS wipes these /var/palm/ls2 registration files on every reinstall, so
+# this must actually run every time, not just once.
+SVC=com.mlb.atbat2011.service
+DIR=/media/cryptofs/apps/usr/palm/services/$SVC
+
+cat > /var/palm/ls2/services/pub/$SVC <<EOF
+[D-BUS Service]
+Name=$SVC
+Exec=/usr/bin/run-js-service -n $DIR
+EOF
+cp /var/palm/ls2/services/pub/$SVC /var/palm/ls2/services/prv/$SVC
+
+cat > /var/palm/ls2/roles/pub/$SVC.json <<'JSON'
+{ "role": { "exeName":"js", "type":"regular", "allowedNames":["com.mlb.atbat2011.service"] },
+  "permissions": [ { "service":"com.mlb.atbat2011.service", "inbound":["*"], "outbound":["*"] } ] }
+JSON
+sed 's/"outbound":\["\*"\]/"outbound":[]/' /var/palm/ls2/roles/pub/$SVC.json > /var/palm/ls2/roles/prv/$SVC.json
+
+# Kill any already-running instance so it doesn't keep serving stale code
+# after an upgrade, and reap any orphaned playback processes from a
+# previous run -- same reasoning as deploy-mlbatbat-audio.ps1's manual
+# fallback version of this script.
+PID=`ps ax | grep $SVC.js | grep -v grep | awk '{print $1}'`
+[ -n "$PID" ] && kill -9 $PID
+for p in `ps ax | grep gst-launch | grep -v grep | awk '{print $1}'`; do kill -9 $p; done
+
+ls-control scan-services >/dev/null 2>&1
+
+exit 0

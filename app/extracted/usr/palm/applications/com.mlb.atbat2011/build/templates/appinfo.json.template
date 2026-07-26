@@ -1,0 +1,10 @@
+{
+	"id": "{id}",
+	"version": "{version}",
+	"vendor": "MLB.com",
+	"type": "web",
+	"main": "index.html",
+	"title": "At Bat 11",
+	"icon": "imgs/icon.png",
+	"uiRevision": 2
+}

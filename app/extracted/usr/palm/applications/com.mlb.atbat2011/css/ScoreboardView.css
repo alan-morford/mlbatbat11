@@ -1,0 +1,408 @@
+.prevButton, .nextButton{
+	width  : 36px;
+	height : 20px;
+	color : #ccc;
+	border-top:1px solid #000;
+	border-bottom:1px solid #5a5a5a !important;
+	background-color : #000;
+	text-align : center;
+	padding : 5px 0;
+}
+.prevButton{
+	-webkit-border-bottom-left-radius:15px;
+	-webkit-border-top-left-radius:15px;
+}
+.nextButton{
+	-webkit-border-bottom-right-radius:15px;
+	-webkit-border-top-right-radius:15px;
+}
+.header{
+	margin : 0 auto;
+	padding : 0;
+}
+.gameDate{
+	font-size : 14px;
+	font-weight : bold;
+	height : 16px;
+	width : 160px;
+	padding : 7px 0;
+	text-align : center;
+	background-color : #292929;
+	color : #ccc;
+	margin : 0;
+	border-top:1px solid #000;
+	border-bottom:1px solid #5a5a5a !important;
+}
+.calendar{
+	width : 26px;
+	height : 25px;
+	margin : 3px 30px 5px 0;
+}
+
+/* -------------------
+    GLOBAL OVERIDES
+ ------------------- */
+ 	* { -webkit-tap-highlight-color: rgba(0,0,0,0); }
+	body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td { margin:0; padding:0; font-family:arial,helvetica,sans-serif; }
+	h1, h2, h3, h4, h5, h6, address, caption, cite, code ,dfn, th, var { font-style:normal; font-weight:normal; }
+	fieldset, img, iframe { border:0; }
+	li { list-style:none; }
+	caption, th, td { text-align:center; vertical-align:middle; }
+	q:before, q:after { content:''; }
+	abbr, acronym { border:0; font-variant:normal; }
+	sup { vertical-align:text-top; }
+	sub { vertical-align:text-bottom; }
+	input, textarea, select { font-family:inherit; font-size:inherit; font-weight:inherit; }
+	input, textarea, select { *font-size:100%; }
+	legend { color:#000; }
+	table { font-size:inherit; font:100%; width:100%; }
+	pre, code, kbd, samp, tt { font-family:monospace; *font-size:108%; line-height:100%; }
+
+	/* -----------------------
+	    GLOBAL LINKS & TEXT
+	 ----------------------- */
+		body { font-size:14px; color:#000000; -webkit-text-size-adjust:none; }
+		a { color:#5b5b53; text-decoration:none; }
+		a:visited, a:focus, a:active, a:hover { background-color:transparent; }
+		.title { padding:10px 8px 8px; color:#000066; font-size:1.2em; font-weight:bold; }
+		.nav.secondary, .header.secondary, .secondary th {
+			color:#000066; border-top:solid 1px #ced0cf; border-bottom:solid 1px #ced0cf;
+			background: #ececec;
+			background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0, #fefefe),color-stop(0.5, #f4f4f4),color-stop(0.51, #ececec),color-stop(1, #e3e3e3));
+		}
+		.no_secondary { border-top:solid 1px #ced0cf; } 
+		.header.tertiary, .tertiary th { color:#000000; font-size:0.85em; font-weight:bold; background-color:#e3e3e3; }
+		.header.tertiary { padding:5px 8px; }
+		.selected { background-color: #EAEAEA; }
+		.img.selected { background-color:transparent !important; }
+
+/* ---------------
+    TEAM LOGOS
+ -------------- */
+ 	.team { padding:2px 8px 2px 8px !important; }
+	.team span {
+		display:block; padding:8px 0 8px 40px; 
+		background-image:url(http://wapc.mlb.com/images/logos/logos_2010_sprite.png); 
+		background-size:36px; 
+		-webkit-background-size:36px auto;
+		background-repeat:no-repeat; 
+		background-position:0px -1265px; 
+	}
+	.team .ana { background-position:0px -518px !important; }
+	.team .laa { background-position:0px -518px !important; }
+	.team .ari { background-position:0px 1px !important; }
+	.team .atl { background-position:0px -39px !important; }
+	.team .bal { background-position:0px -80px !important; }
+	.team .bos { background-position:0px -119px !important; }
+	.team .chc { background-position:0px -159px !important; }
+	.team .cin { background-position:0px -199px !important; }
+	.team .cle { background-position:0px -239px !important; }
+	.team .col { background-position:0px -279px !important; }
+	.team .cws { background-position:0px -319px !important; }
+	.team .det { background-position:0px -358px !important; }
+	.team .fla { background-position:0px -396px !important; }
+	.team .hou { background-position:0px -440px !important; }
+	.team .kc { background-position:0px -478px !important; }
+	.team .la { background-position:0px -557px !important; }
+	.team .lad { background-position:0px -557px !important; }
+	.team .mil { background-position:0px -598px !important; }
+	.team .min { background-position:0px -638px !important; }
+	.team .nym { background-position:0px -678px !important; }
+	.team .nyy { background-position:0px -717px !important; }
+	.team .oak { background-position:0px -756px !important; }
+	.team .phi { background-position:0px -796px !important; }
+	.team .pit { background-position:0px -836px !important; }
+	.team .sd { background-position:0px -876px !important; }
+	.team .sea { background-position:0px -915px !important; }
+	.team .sf { background-position:0px -957px !important; }
+	.team .stl { background-position:0px -996px !important; }
+	.team .tb { background-position:0px -1033px !important; }
+	.team .tex { background-position:0px -1075px !important; }
+	.team .tor { background-position:0px -1113px !important; }
+	.team .was { background-position:0px -1154px !important; }
+	.team .wsh { background-position:0px -1154px !important; }
+	.team .al { background-position:0px -1194px !important; }
+	.team .nl { background-position:0px -1233px !important; }
+	.team .gl { background-position:0px -1341px !important; }
+	.team .cl { background-position:0px -1419px !important; }
+
+
+		.team_logo {
+			margin:0 auto;
+			width:36px;
+			height:36px;
+			background-image:url(http://wapc.mlb.com/images/logos/logos_2010_sprite.png);
+			background-size:36px;
+			-webkit-background-size:36px auto;
+			background-repeat:no-repeat;
+			background-position:0px -1265px;
+			text-indent:-9999px;
+		}
+		.team_logo.ari { background-position:0px 1px !important; }
+		.team_logo.atl { background-position:0px -38px !important; }
+		.team_logo.bal { background-position:0px -78px !important; }
+		.team_logo.bos { background-position:0px -117px !important; }
+		.team_logo.chc { background-position:0px -157px !important; }
+		.team_logo.cin { background-position:0px -197px !important; }
+		.team_logo.cle { background-position:0px -237px !important; }
+		.team_logo.col { background-position:0px -277px !important; }
+		.team_logo.cws { background-position:0px -317px !important; }
+		.team_logo.det { background-position:0px -356px !important; }
+		.team_logo.fla { background-position:0px -394px !important; }
+		.team_logo.hou { background-position:0px -438px !important; }
+		.team_logo.kc { background-position:0px -476px !important; }
+		.team_logo.ana { background-position:0px -516px !important; }
+		.team_logo.laa { background-position:0px -516px !important; }
+		.team_logo.la { background-position:0px -556px !important; }
+		.team_logo.lad { background-position:0px -556px !important; }
+		.team_logo.mil { background-position:0px -596px !important; }
+		.team_logo.min { background-position:0px -636px !important; }
+		.team_logo.nym { background-position:0px -676px !important; }
+		.team_logo.nyy { background-position:0px -715px !important; }
+		.team_logo.oak { background-position:0px -754px !important; }
+		.team_logo.phi { background-position:0px -794px !important; }
+		.team_logo.pit { background-position:0px -834px !important; }
+		.team_logo.sd { background-position:0px -874px !important; }
+		.team_logo.sea { background-position:0px -914px !important; }
+		.team_logo.sf { background-position:0px -955px !important; }
+		.team_logo.stl { background-position:0px -994px !important; }
+		.team_logo.tb { background-position:0px -1032px !important; }
+		.team_logo.tex { background-position:0px -1073px !important; }
+		.team_logo.tor { background-position:0px -1112px !important; }
+		.team_logo.was { background-position:0px -1152px !important; }
+		.team_logo.wsh { background-position:0px -1152px !important; }
+		.team_logo.al { background-position:0px -1192px !important; }
+		.team_logo.nl { background-position:0px -1231px !important; }
+		.team_logo.gl { background-position:0px -1338px !important; }
+		.team_logo.cl { background-position:0px -1415px !important; }
+
+
+	/* ----------
+	    LAYOUT
+	 ---------- */
+
+		#container { min-width:320px; }
+		#main { width:100%; position:relative; z-index:1; }
+		.whitespace { min-height:120px; }
+		.blur { opacity:0.4; filter:alpha(opacity=40); }
+
+		.media { clear:both; margin:0 auto; padding:0 8px; border-bottom:1px solid #EAEAEA; overflow:auto; }
+		.media:last-of-type { border-bottom:0px; }
+		.media .headline { padding-top:5px; }
+		.media .img { float:left; padding:4px 5px 2px 0; }
+		.media .time_stamp { padding-top:5px; font-size:0.8em; }
+		.media .description { padding-top:5px; padding-bottom:8px; font-size:0.9em; }
+		.media.asg img { background: #A71930; background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#A71930), color-stop(50%,#A71930), color-stop(51%,#731121), color-stop(100%,#731121)); }
+
+		table.data { clear:both; width:100%; }
+		table.data th, table.data td { padding:5px 2px; }
+		table.data td { border-bottom: 1px solid #EAEAEA; }
+		table.data .active td { font-weight:bold; }
+		table.data .last td { border-bottom:0px; }
+		table.data th.first, table.data td.first { padding-left:8px; text-align:left; }
+		table.data th.last, table.data td.last { padding-right:8px; text-align:right; }
+
+		.scores-schedule li { display: inline-block; padding:10px 8px; }
+		.rows li { padding:10px 8px; border-bottom:1px solid #EAEAEA; overflow:hidden; }
+		.rows li:last-of-type { border-bottom:0px; }
+		.rows li.first { border-top:1px solid #EAEAEA; }
+		.content { padding:10px 8px; overflow:hidden; }
+		.content.first { border-top:2px solid #EAEAEA; }
+		.content.last { border-bottom:1px solid #EAEAEA; }
+		.content h1 { text-align:left; padding-bottom:5px; font-size:1.2em; font-weight:bold; }
+		.content h2 { text-align:left; padding-bottom:3px; color:#000066; font-size:1em; font-weight:bold; }
+		.content h3, .content h4, .content h5, .content dt { text-align:left; padding-bottom:2px; font-size:0.9em; font-weight:bold; }
+		.content p, .content dd { padding-bottom:2px; }
+		.content p.last { padding-bottom:0px; }
+		.content .time_stamp { padding:0px 0px 12px; font-size:0.9em; }
+		.content .tagline { padding:5px 0px 8px; color:#666666; font-size:0.8em; }
+		.content .right, .content .left { float:none !important; }
+		.content ol li { list-style:outside upper-alpha; font-weight:bold; }
+		.content ol.numeric { margin-left:10px; }
+		.content ol.numeric li { list-style:outside decimal; font-weight:normal; }
+		.content ol li ol li { list-style:outside lower-alpha; font-weight:bold; }
+		.content ol li p { font-weight:normal; }
+		.content ul li { margin-left:14px; padding:5px 0px; list-style:outside disc; border:0px; font-weight:normal; padding:3px 0px; }
+		.content dt { margin-left:25px;  font-size:1.1em; font-weight:bold; color:#000066;  }
+		ol.toc li { clear:both; padding:14px 8px; list-style:inside decimal; border-bottom:1px solid #D8D8D8; }
+		ol.toc li.last { border-bottom:0px; }
+		ol.toc .sub { font-weight:bold; }
+		ol.toc li ol li { clear:both; padding:8px 0px 8px 26px; list-style:inside upper-alpha; border:0px; font-weight:normal; }
+		ol.toc li ol li.last { padding-bottom:0px; }
+
+		.bar1 { -webkit-transform:rotate(0deg) translate(0, -40px);opacity:0.12; }
+		.bar2 { -webkit-transform:rotate(45deg) translate(0, -40px);opacity:0.25; }
+		.bar3 { -webkit-transform:rotate(90deg) translate(0, -40px);opacity:0.37; }
+		.bar4 { -webkit-transform:rotate(135deg) translate(0, -40px);opacity:0.50; }
+		.bar5 { -webkit-transform:rotate(180deg) translate(0, -40px);opacity:0.62; }
+		.bar6 { -webkit-transform:rotate(225deg) translate(0, -40px);opacity:0.75; }
+		.bar7 { -webkit-transform:rotate(270deg) translate(0, -40px);opacity:0.87; }
+		.bar8 { -webkit-transform:rotate(315deg) translate(0, -40px);opacity:1; }
+		.content-loading { display:none; text-align:center; }
+		.overlay { position:absolute; margin:5%; height:200px; width:90%; filter:alpha(opacity=70); z-index:7;}
+		.loading { font-size:2em; font-weight:bold; color:#2D2C31; }
+		#spinner {
+			width:100px; height:100px; margin:0 auto; 
+			-webkit-border-radius:100px; -webkit-transform:scale(0.5); 
+			-webkit-animation-name: rotateThis; -webkit-animation-duration:2s; 
+			-webkit-animation-iteration-count:infinite; -webkit-animation-timing-function:linear; 
+		}
+		#spinner div { width:20px; height:20px; background:#000; -webkit-border-radius:40px; position:absolute; left:40px; top:40px; }
+		#spinner .bar1 { -webkit-transform:rotate(0deg)   translate(0, -40px) scale(0.1);opacity:0.12;}
+		#spinner .bar2 { -webkit-transform:rotate(45deg)  translate(0, -40px) scale(0.2);opacity:0.25;}
+		#spinner .bar3 { -webkit-transform:rotate(90deg)  translate(0, -40px) scale(0.4);opacity:0.37;}
+		#spinner .bar4 { -webkit-transform:rotate(135deg) translate(0, -40px) scale(0.6);opacity:0.50;}
+		#spinner .bar5 { -webkit-transform:rotate(180deg) translate(0, -40px) scale(0.8);opacity:0.62;}
+		#spinner .bar6 { -webkit-transform:rotate(225deg) translate(0, -40px) scale(1);opacity:0.75;}
+		#spinner .bar7 { -webkit-transform:rotate(270deg) translate(0, -40px) scale(1.2);opacity:0.87;}
+		#spinner .bar8 { -webkit-transform:rotate(315deg) translate(0, -40px) scale(1.4);opacity:1;}
+		@-webkit-keyframes rotateThis {
+			from {-webkit-transform:scale(0.5) rotate(0deg);}
+			to {-webkit-transform:scale(0.5) rotate(360deg);}
+		}
+
+/* full scoreboard styles - url = /scores
+----------------------------------------- */
+#fullScoreboard { font-size: 0.85em; text-align: left; }
+#fullScoreboard table{ -webkit-border-radius:5px; border-top : 1px solid #fff; }
+#fullScoreboard>li{ width : 170px; float : left; background-color: #dbdbd0; border:1px solid #9c9c8d; -webkit-border-radius:5px; margin : 20px 0 0 20px;}
+#fullScoreboard tr:first-child>td{ border-bottom :1px solid #9c9c8d; }
+#fullScoreboard tr:nth-child(3)>td,
+#fullScoreboard tr:nth-child(4)>td{ border-bottom :1px solid #c3c3be; color : #666; height : 38px; background-color:#fff;}
+#fullScoreboard tr:nth-child(3)>td{ border-top:1px solid #dfdfd8;}
+#fullScoreboard tr:nth-child(5)>td{ border-top:1px solid #87877e;}
+#fullScoreboard td.runs,
+#fullScoreboard td.hits,
+#fullScoreboard td.errors{ border-left : 1px solid #afaf9f; }
+#fullScoreboard td.runs{ background-color : #bfbfb1 !important; color : #fff; border-top:0 !important; }
+.winners .teamAbbrev {
+    background-image:url("http://wapc.mlb.com/images/touch/ic_arrowsh.png");
+	background-size:24px auto;
+	-webkit-background-size:24px auto;
+	background-repeat:no-repeat;
+	background-position:-10px 9px;
+}
+.scores_timezone { font-size: 0.65em; font-weight: normal; }
+.gameStats {  }
+.gameStats th { font-size:10px !important; color : #87877e; height : 15px; border-top:1px solid #fff; background-color : #efefe6; border-bottom: 1px solid #afaf9f;}
+.sc_team td, .gameStats td {  }
+.sc_team td.extras { width: 18%; }
+.sc_team.home td {  }
+td.errors {  }
+.inProgress td.errors { border-right: 0; }
+.sc_team td.runs span, .sc_team td.hits span, .sc_team td.errors span { background-image: none !important; margin: 0; padding: 0; }
+.sc_team { clear: both; }
+.sc_team span { margin-left: .7em; padding-bottom: 16px !important; }
+.games li.click { margin: 0.5em; overflow: hidden; }
+.status { clear: both; float: left; }
+.status .runs, #fullScoreboard .status .hits, #fullScoreboard .status .errors { float: left; padding: 1% 0 !important; }
+.status .gameStatus { float: left; }
+.final .gameStatus, .status .gameStatus{ height : 30px; font-size : 14px; vertical-align:middle; }
+.gameStatus a{ display:inline-block; margin : 7px; }
+.status span { height: auto; }
+.teamAbbrev { float: left; height: 30px; font-size:1.2em; }
+.teamAbbrev, .gameStatus { display: inline-block; font-weight: bold; margin: 0; }
+.teamAbbrev span:first-child { padding-top:0 !important; }
+.record { background: none !important; background-size: 0 !important; color: #999; font-size: 0.9em; font-weight: normal; padding: 0 !important; position: relative; left: 40px; top: -17px; text-align: left; }
+.statsWrap { display: inline-block; vertical-align: top; }
+.runs, #fullScoreboard .hits, #fullScoreboard .errors { width: 12%; }
+.runs span, #fullScoreboard .hits span, #fullScoreboard .errors span { padding-bottom: 0 !important; }
+.runs {  }
+.keyStats { font-size: 0.8em; height : 80px;}
+.keyStats td { text-align: left;  vertical-align : top;}
+.currentPlayers { padding: 0 3px; font-size : 11px; }
+/*.currentPlayers, .currentPlayers span { display: inline-block; }*/
+.extrasContainer { margin: 0; padding : 0 3px 3px; overflow: hidden; height : 35px; border-top:1px solid #fff; }
+.menOnBase { margin-left: 0.6em; float : left; width:50px; }
+.inningInfo { margin-left: 50px;  }
+.inningInfo div { position:relative; }
+.menOnBase, .inningInfo { clear: both; float: left; }
+.inningInfo span { background: 0 !important; color: #000; font-size: 0.9em;/* margin-left: 19px !important; */padding: 0 !important; display : inline-block; position : absolute; left : 35px; top : 0;}
+.menOnBase ul { position: relative; top: 3px; }
+.menOnBase li { background: url(http://mlb.mlb.com/images/scoreboard/runners.png) no-repeat; position: absolute; height: 16px; width: 16px; }
+.menOnBase li.runner { background-position: -16px 0px; }
+.menOnBase li span { display: none; }
+.menOnBase li.firstBase { left: 20px; top: 10px; }
+.menOnBase li.secondBase { left: 10px; top: 0; }
+.menOnBase li.thirdBase { left: 0; top: 10px; }
+
+#fullScoreboard li.nogames{
+	float : none;
+	margin : 100px auto;
+	padding : 20px;
+	width : 300px;
+	text-align: center;
+	font-size : 14px;
+}
+
+#main_sliding_Scoreboard_scroller{
+	margin : 0px 17px;
+}
+#main_sliding_Scoreboard_scoreboardHeader_datePicker_year{
+	display : none;
+}
+#gamedayHeader {
+	margin-top:-3px;
+}
+
+/* native scoreboard list (views/ScoreboardGameBox.js, views/ScoreboardList.js)
+   -- replaces the #fullScoreboard jQuery-template rules above, which target
+   markup that's no longer produced by anything (the template that used to
+   render it is dead, see views/ScoreboardView.js). Left the old rules in
+   place rather than deleting them, per project convention. */
+.scoreboardNoGames {
+	margin: 100px auto;
+	padding: 20px;
+	width: 300px;
+	text-align: center;
+	font-size: 14px;
+	color: #666;
+}
+.scoreboardGamesContainer {
+	overflow: hidden; /* clearfix -- children are float:left */
+}
+.scoreboardGameBox {
+	width: 220px; /* 3 tiles/row on a ~790px-wide content area; 4 would overflow */
+	float: left;
+	background-color: #dbdbd0;
+	border: 1px solid #9c9c8d;
+	-webkit-border-radius: 5px;
+	margin: 20px 0 0 20px;
+	padding: 8px;
+	font-size: 0.85em;
+}
+.scoreboardGameBoxRow {
+	overflow: hidden; /* clearfix -- children below are float:left/right */
+	padding: 3px 0;
+}
+.scoreboardTeamLogo {
+	float: left;
+	width: 24px;
+	height: 24px;
+	margin-right: 6px;
+}
+.scoreboardTeamName {
+	float: left;
+	width: 140px;
+	font-weight: bold;
+	color: #333;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.scoreboardTeamScore {
+	float: right;
+	font-weight: bold;
+	color: #000;
+	min-width: 20px;
+	text-align: right;
+}
+.scoreboardGameStatus {
+	clear: both;
+	margin-top: 5px;
+	padding-top: 5px;
+	border-top: 1px solid #c3c3be;
+	color: #666;
+	font-size: 0.9em;
+	text-align: center;
+}

@@ -1,0 +1,19 @@
+{
+	"id": "com.mlb.atbat2011.service",
+	"description": "MLB At Bat live radio playback service (GStreamer-backed, bypasses this device's broken HTML5 audio pipeline -- see MLBAudioService.js header comment)",
+	"activityTimeout": 600,
+	"services": [{
+		"name": "com.mlb.atbat2011.service",
+		"description": "MLB At Bat live radio playback service",
+		"commands": [
+			{ "name": "play",      "assistant": "PlayCommandAssistant",      "public": true },
+			{ "name": "pause",     "assistant": "PauseCommandAssistant",     "public": true },
+			{ "name": "resume",    "assistant": "ResumeCommandAssistant",    "public": true },
+			{ "name": "stop",      "assistant": "StopCommandAssistant",      "public": true },
+			{ "name": "getStatus", "assistant": "GetStatusCommandAssistant", "public": true },
+			{ "name": "setVolume", "assistant": "SetVolumeCommandAssistant", "public": true },
+			{ "name": "getVolume", "assistant": "GetVolumeCommandAssistant", "public": true },
+			{ "name": "httpRequest", "assistant": "HttpRequestCommandAssistant", "public": true }
+		]
+	}]
+}

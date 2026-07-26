@@ -1,0 +1,10 @@
+{
+	"id": "com.mlbatbat.hlsspike",
+	"version": "1.0.0",
+	"vendor": "restoration-test",
+	"type": "web",
+	"main": "index.html",
+	"title": "HLS Spike Test",
+	"icon": "icon.png",
+	"uiRevision": 2
+}

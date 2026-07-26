@@ -1,0 +1,10 @@
+.leftNav > div {
+	color : #fff;border-bottom: 1px solid #000; border-top: 1px solid gray;
+}
+.leftNav {
+	/*background-color:#343434;*/
+	background: url(../imgs/left_nav_bg.png);
+}
+.leftNav .clicked {
+	background-color: rgba(0,0,0,0.3);
+}

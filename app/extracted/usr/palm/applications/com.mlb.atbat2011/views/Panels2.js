@@ -1,0 +1,220 @@
+/* Copyright 2009-2011 Hewlett-Packard Development Company, L.P. All rights reserved. */
+
+enyo
+		.kind( {
+			name : "mlb.Panels",
+			kind : enyo.VFlexBox,
+			components : [
+			/*
+			 * { kind : "VFlexBox", className : "enyo-fit", components : [ {
+			 * kind : "Header" }, { kind : "Spacer" }, { kind : "Toolbar" } ] },
+			 */
+			{
+				name : "slidingPane",
+				kind : "SlidingPane",
+				flex : 1,
+				onResize:"resizeHandler",
+				onSelectView : "slidingSelected",
+				components : [
+						{
+							name : "leftSlidingView",
+							width : "200px",
+							components : [
+									{
+										name : "header",
+										kind : "Header",
+										components : [ {
+											kind : "Image",
+											src : "imgs/icons/mlb.png",
+											style : "margin : 0 25px"
+										} ]
+									},
+									{
+
+										flex : 1,
+										name : "leftNav",
+										className : "leftNav",
+										components : [],
+										"itemClicked" : function(item) {
+
+
+											if (this.lastItemClicked) {
+												if (main.currentMiddlePane == item.properties.view) {
+													return; // do nothing
+												} else {
+													this.lastItemClicked
+															.removeClass("clicked");
+												}
+											}
+											item.addClass("clicked");
+											this.lastItemClicked = item;
+
+											var showit = function() {
+
+												var view = Views[item.properties.view];
+
+												if (!view) {
+													return;
+												}
+												view.params = item.properties.params;
+												if (item.properties.view == "GenericWebView") {
+													view.title = item.properties.title;
+												}
+												Views["Scoreboard"]
+														.hidePopups();
+												Views["Scoreboard"].$.scrim
+														.hide();
+												if (Views
+														&& Views["Scoreboard"]) {
+													try {
+														Views["Scoreboard"]
+																.scrollTo(0, 0);
+													} catch (e) {
+													}
+												}
+												main
+														.showViewInMiddle(
+																item.properties.view,
+																Views[item.properties.view]);
+
+											};
+
+											showit();
+
+											Track(item.properties.view);
+
+										}
+
+									}, {
+										kind : "Toolbar"
+									} ]
+						},
+						{
+							name : "rightPane",
+							flex : 1,
+							onResize:"resizeHandler",
+							components : [ {
+								kind : "Pane",
+								name : "panes",
+								flex : 1,
+								style : "width:100%; height: 100%",
+								transitionKind : "enyo.transitions.Fade",
+								onSelectView : "viewSelected",
+								components : [ {
+									name : "FIRST",
+									kind : "enyo.VFlexBox"
+								},
+										{
+											kind : "mlb.ScoreboardView",
+											name : "Scoreboard"
+
+										},
+										{
+											kind : "mlb.NewsView",
+											name : "News"
+
+										},
+										{
+											flex : 1,
+											kind : "mlb.StandingsView",
+											name : "Standings"
+										// style: "width:100%; height: 500"
+
+										},
+										{
+											flex : 1,
+											kind : "mlb.GamedayView",
+											name : "Gameday"
+										},
+										{
+											flex : 1,
+											kind : "mlb.TermsView",
+											name : "Terms"
+										// style: "width:100%; height: 500"
+
+										},
+										{
+											flex : 1,
+											kind : "mlb.GenericWebView",
+											name : "GenericWebView"
+										// style: "width:100%; height: 500"
+
+										},
+										{
+											name : "slidingPane2",
+											kind : "SlidingPane",
+											components : [
+													{
+														name : "middleSlidingView",
+														flex : 1,
+														// peekWidth : 200,
+														showing : false,
+
+														onResize : "slidingResize",
+														components : [ {
+															name : "middleCanonView",
+															kind : "CanonView",
+															headerContent : "",
+															flex : 1,
+															components : []
+														} ]
+													},
+													{
+														name : "rightSlidingView",
+														flex : 1,
+														showing : false,
+
+														onResize : "slidingResize",
+														style : "background-color: rgba(1,1,1,0); ",
+														components : [ {
+															name : "rightCanonView",
+															kind : "CanonView",
+															headerContent : "Panel 3",
+															flex : 1
+														} ]
+
+													}
+
+											]
+										}
+
+								]
+							} ]
+						} ]
+			} ],
+
+			gotoMiddle : function() {
+				// this.$.slidingPane.selectView(this.$.middleSlidingView);
+		},
+		itemClicked : function() {
+			console.log("ITEM CLICKED!");
+		},
+
+		slidingSelected : function(inSender, inSliding, inLastSliding) {
+			// print(this.$.rightSlidingView);
+			// print(this.$.slidingPane);
+			console.log("SLIDING SELECTED!! lastslding:" + inLastSliding);
+			if (inSliding.index == 0) {
+				console.log("HIDE RIGHT SLIDING VIEW");
+				// main.hideRightSlidingView();
+			}
+
+			this.log(inSliding.id, (inLastSliding || 0).id);
+		},
+		slidingResize : function(inSender) {
+			console.log("SLIDING RESIZE!!");
+			this.log(inSender.id);
+		},
+		backHandler : function(inSender, e) {
+			console.log("BACK!!");
+			// this.$.slidingPane.back(e);
+		},
+		resizeHandler : function() {
+			console.log("RESIZE HANDLER!!");
+			// this.$.slidingPane.resize();
+		},
+		viewSelected : function(inSender, inView) {
+
+			inView.show();
+		}
+		});

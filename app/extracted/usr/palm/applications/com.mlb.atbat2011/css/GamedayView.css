@@ -1,0 +1,515 @@
+div.tabButton div.enyo-button-icon-text{
+	width : 75px !important;
+}
+
+/* native Gameday live view (views/GamedayLinescore.js,
+   views/GamedayPlayByPlay.js) -- replaces the WebView that used to embed
+   the now-dead wapc.mlb.com/gd3/apps/native/palm.jsp. Gameday is now a full
+   pane (views/Panels2.js, like Scoreboard/Standings/News), not a 420px
+   popup -- that popup left team names truncated with no real fix available
+   (60px isn't enough for "St. Louis Cardinals" at any font size), hence the
+   much wider columns below now that there's real room to work with. */
+.gamedayBackButton {
+	width: 140px;
+	height: 20px;
+	color: #ccc;
+	border-top: 1px solid #000;
+	border-bottom: 1px solid #5a5a5a !important;
+	background-color: #000;
+	text-align: center;
+	padding: 5px 0;
+	margin: 0 10px;
+	-webkit-border-radius: 15px;
+}
+.gamedayMatchup {
+	padding-left: 10px;
+	color: white;
+	font-weight: bold;
+	font-size: 130%;
+}
+/* topBar now carries the panel background/border that used to live on
+   .gamedayLinescore alone -- linescore and diamond share one visual row
+   now instead of being two separately-panelled elements. */
+.gamedayTopBar {
+	background-color: #fff;
+	border-bottom: 1px solid #9c9c8d;
+	padding: 12px 10px;
+}
+.gamedayLinescore {
+	/* intentionally no background/border/padding of its own any more --
+	   see .gamedayTopBar above */
+}
+/* display:table/table-row/table-cell instead of float:left -- see
+   views/GamedayLinescore.js's header comment for why (float alignment
+   depended on independently-built rows happening to use identical column
+   widths/order, with nothing structurally tying them together; a CSS
+   table gives the browser's own table layout algorithm that job
+   instead, guaranteeing the innings header lines up with the actual
+   per-team score columns). */
+.linescoreTable {
+	display: table;
+	/* NOT width:100% -- confirmed live that stretched the table to fill
+	   .gamedayLinescore's whole flex:1 width, and table-layout:fixed then
+	   proportionally distributed that extra width across EVERY column,
+	   including the 30px inning-number cells (reading as "too much room
+	   between 1 and 2 and 3..."), and pushed the label column's own start
+	   away from the team names. Without an explicit width the table just
+	   sizes to the sum of its declared column widths (140px label + 30px
+	   per inning/R/H/E cell) and sits flush at the left, which is also
+	   what keeps it correctly sized if a game goes to extra innings
+	   (more columns just extend the table further right, not squeezed
+	   into a fixed total). */
+	table-layout: fixed;
+}
+.linescoreRow {
+	display: table-row;
+}
+.linescoreHeaderRow {
+	font-weight: bold;
+	color: #87877e;
+	font-size: 0.8em;
+}
+.linescoreHeaderRow .linescoreCell,
+.linescoreHeaderRow .linescoreLabelCell {
+	border-bottom: 1px solid #efefe6;
+	padding-bottom: 5px;
+}
+.linescoreLabelCell {
+	display: table-cell;
+	width: 140px; /* was 200px, then 150px -- brought the innings in to ~10px from the team names; ellipsis (below) still guards the longest names */
+	font-size: 1em;
+	font-weight: bold;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.linescoreCell {
+	display: table-cell;
+	width: 30px;
+	text-align: center;
+	font-size: 0.9em;
+}
+.linescoreTotalCell {
+	font-weight: bold;
+}
+.linescoreSituation {
+	clear: both;
+	margin-top: 6px;
+	padding-top: 6px;
+	border-top: 1px solid #efefe6;
+	font-size: 0.85em;
+	color: #555;
+	text-align: center;
+}
+.gamedayNoGame {
+	margin: 100px auto;
+	padding: 20px;
+	text-align: center;
+	font-size: 14px;
+	color: #666;
+}
+
+/* two-column body: left = matchup info + strike zone, right = pitcher
+   card + play-by-play (views/GamedayView.js's mainColumns). */
+.gamedayLeftColumn {
+	position: relative; /* anchor for .gamedayPitchLegend's position:absolute */
+	/* Forces this flex:1 item to actually respect its flex-computed width
+	   instead of being stretched wider by an oversized descendant -- old
+	   -webkit-box has no min-width:0 equivalent, so a flex item with no
+	   explicit width can silently grow to fit an intrinsically-wide child
+	   (a known quirk of this box model). Enlarging .gamedaySilhouette 20%
+	   this session made pitchZoneRow's content wide enough to trigger
+	   exactly that, which grew leftColumn itself -- and since
+	   background-position below is percentage-based (tied to THIS
+	   element's actual rendered size), a wider box silently moved the
+	   51%/87% home-plate anchor point, which read as "the strike zone
+	   moved" even though nothing touched its own positioning. This should
+	   restore leftColumn to its intended flex-allocated width regardless
+	   of how wide any one child's content gets. */
+	overflow: hidden;
+	padding: 12px 10px;
+	background-color: #fff;
+	/* diamond.jpg -- deliberately scoped to just this element (strike zone
+	   + player area), not .gamedayTopBar (innings/bases) or
+	   .gamedayRightColumn (pitcher card/play-by-play), which are separate
+	   sibling boxes and were never going to inherit this regardless --
+	   scoping it to .gamedayLeftColumn is what keeps it out of those areas. */
+	background-image: url(../imgs/diamond.jpg);
+	-webkit-background-size: cover; /* this project's other -webkit-prefixed CSS (border-radius, transform, box-orient) suggests unprefixed background-size alone isn't safe to assume on this 2011-era WebKit */
+	background-size: cover;
+	/* 51% 87% -- NOT plain "center". Measured directly against diamond.jpg's
+	   own pixels (618x607): home plate sits at roughly x=314/618 (~51%
+	   across) and y=531/607 (~87% down) in the source photo. CSS
+	   background-position percentages align that SAME percentage point of
+	   the image with that percentage point of the container, so this pins
+	   home plate to a known, fixed (51%, 87%) spot in .gamedayLeftColumn
+	   regardless of its actual rendered pixel size -- "center" (50%/50%)
+	   was putting home plate roughly in the vertical MIDDLE of the whole
+	   column instead of near the bottom where it actually sits in frame. */
+	background-position: 51% 87%;
+}
+.gamedayRightColumn {
+	/* 280px was sized for the pitcher card, which used to live here --
+	   it moved to gamedayLeftColumn's matchupRow, and this column now
+	   only holds the on-deck indicator + play-by-play, neither of which
+	   needs that much width. Narrowed to give leftColumn (and the
+	   now-25%-bigger strike zone/silhouettes) real breathing room instead
+	   of overflowing leftColumn's own width. */
+	width: 220px;
+	background-color: #fff;
+	border-left: 1px solid #9c9c8d;
+}
+.gamedayMatchupRow {
+	margin-bottom: 12px;
+	/* width:100% -- confirmed live the row wasn't actually stretching to
+	   leftColumn's full width by default (despite HFlexBox/VFlexBox's
+	   documented default cross-axis "stretch" alignment, which apparently
+	   isn't reliably landing here). Still needed even now that pitcherCard
+	   is position:absolute (below) -- .gamedayPlayerCardReversed's right:0
+	   anchors against THIS row's own right edge, which must equal
+	   leftColumn's true content-box edge for that to land in the right
+	   place, not just wherever batterCard's own width happens to end. */
+	width: 100%;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+	position: relative; /* anchor for .gamedayPlayerCardReversed's position:absolute */
+	/* Above pitchZoneRow's silhouettes in paint order -- the enlarged
+	   (20% bigger) silhouettes now visually extend up into this row's
+	   space (position:relative + a fixed negative top offset that doesn't
+	   scale with the box's own height, so a taller box's TOP reaches
+	   further up than before) and, being later in DOM order with no
+	   z-index of their own, were painting over the batter/pitcher
+	   headshots that already live here. */
+	z-index: 2;
+}
+/* mlb.GamedayPlayerCard's reverse:true (the pitcher card) -- position:
+   absolute, anchored directly to matchupRow's own right edge, giving it
+   the exact same 10px gap from that edge that leftColumn's own padding
+   already gives batterCard on the left. NOT flex packing/a spacer --
+   confirmed live twice now that neither pack:"justify" nor a flex:1
+   spacer actually pushed it flush against the edge (both left it much
+   closer to center than intended) for reasons that were never fully
+   pinned down; plain CSS positioning sidesteps whatever was causing that
+   entirely. text-align:right on the info text is the other (purely
+   cosmetic) thing this class does. */
+.gamedayPlayerCardReversed {
+	position: absolute;
+	right: -35px; /* was -30px, -20px, -10px, 0 -- moved another 5px right per request */
+	top: 50%;
+	-webkit-transform: translateY(-50%);
+	transform: translateY(-50%);
+}
+.gamedayPlayerCardReversed .gamedayPlayerInfo {
+	text-align: right;
+}
+.gamedayPitchZoneRow {
+	/* fills the rest of leftColumn's height, see pack/align set directly
+	   on the HFlexBox in GamedayView.js */
+}
+
+/* baserunner diamond (views/GamedayDiamond.js) + pitch-location plot
+   (views/GamedayPitchZone.js) -- both new, no prior art anywhere in this
+   project. Pure CSS/DOM, deliberately no images: the original 2011 app's
+   own leftover (unused) diamond CSS in css/ScoreboardView.css's
+   .menOnBase rules relied on a hotlinked mlb.mlb.com sprite image, same
+   dead-CDN pattern as the SVG team-logo mistake earlier in this
+   restoration -- these avoid that risk entirely. */
+.gamedayDiamond {
+	position: relative;
+	width: 80px;
+	height: 80px;
+	margin-left: 10px; /* gap from .gamedayOuts to its left, which now sits between it and linescore */
+	/* Shifts the whole outs+bases cluster 30px left off the pane's right
+	   edge -- diamond is topBar's last flex item, and linescore's flex:1
+	   absorbs whatever space this margin eats, so this alone moves both
+	   diamond AND outs (positioned immediately before it) together. */
+	margin-right: 30px;
+}
+.gamedayBase {
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	background-color: #fff;
+	border: 2px solid #999;
+	-webkit-transform: rotate(45deg);
+}
+.gamedayBase.occupied {
+	background-color: #f5c518;
+	border-color: #b8900e;
+}
+
+/* outs indicator (views/GamedayView.js's mlb.GamedayOuts) -- same size/
+   style language as .gamedayBase (empty white circle, fills the same
+   occupied yellow when active), just circular instead of rotated-square
+   and laid out in a simple row instead of diamond positions. Stacked
+   directly under the bases now (see .gamedayBasesOutsGroup), not beside
+   them. */
+.gamedayOuts {
+	margin-left: 10px; /* gap from linescore -- outs is now topBar's middle element, bases (.gamedayDiamond) to its right */
+}
+.gamedayOut {
+	width: 16px;
+	height: 16px;
+	-webkit-border-radius: 8px;
+	border-radius: 8px;
+	background-color: #fff;
+	border: 2px solid #999;
+	margin: 0 3px;
+}
+.gamedayOut.occupied {
+	background-color: #f5c518;
+	border-color: #b8900e;
+}
+.gamedayBaseSecond {
+	top: 4px;
+	left: 32px;
+}
+.gamedayBaseFirst {
+	top: 32px;
+	left: 60px;
+}
+.gamedayBaseThird {
+	top: 32px;
+	left: 4px;
+}
+.gamedayPitchZone {
+	position: relative;
+	width: 325px;  /* matches VIEW_WIDTH in views/GamedayPitchZone.js -- 260 +25% */
+	height: 388px; /* matches VIEW_HEIGHT in views/GamedayPitchZone.js -- 310 +25% */
+	/* deliberately no background/border of its own -- that drew a second,
+	   outer box around .gamedayStrikeZoneRect's own box, reading as "a box
+	   inside a box". The strike zone rectangle itself is the only box now. */
+}
+.gamedayPitchZoneCol {
+	margin: 0 10px; /* was 15px -- trimmed to make room for the larger silhouettes below */
+	position: relative;
+	/* left:-10px is the same horizontal correction confirmed live before
+	   the zone was resized 25% bigger -- kept as-is rather than re-derived,
+	   since pack:"center"'s underlying math centers this cluster based on
+	   the (still-symmetric, unchanged-width) flanking silhouettes, not the
+	   zone's own size, so the same correction should still apply. Also
+	   narrowed .gamedayRightColumn above to free up real width for this
+	   row, since the resize made the silhouette+zone+silhouette group
+	   wide enough to risk overflowing leftColumn's available space, which
+	   would have thrown pack:"center" off in a way no small px nudge
+	   could reliably fix. */
+	left: -35px; /* was -30px, -10px -- moved another 5px left, still right of home plate */
+	top: 80px; /* was 40px -- confirmed live it still needed to come down further after the resize */
+}
+.gamedayPlate {
+	width: 180px;
+	height: 81px; /* plate.png's native aspect ratio (171x77) preserved */
+	margin-top: 8px;
+	background: url(../imgs/plate.png) no-repeat center / contain;
+}
+/* Batter-handedness silhouette flanking the strike zone -- only the one
+   matching the current batter's actual handedness is visible
+   (GamedayLive.updateSilhouette). visibility:hidden, not
+   setShowing/display:none, so the empty slot keeps its layout space --
+   that's what keeps the pitch zone visually centered between two
+   fixed-width columns regardless of which side (or neither, for an
+   unrecognized handedness value) is active. Scaled down from the source
+   images' native 150x450 so there's still real room left for the zone
+   itself to be significantly bigger than before, the more explicit ask;
+   158x475 is the prior 132x396 sizing +20%. Bottom position is
+   unaffected by this resize: the row aligns items to its bottom edge
+   (align:"end" in views/GamedayView.js), which anchors the box's bottom
+   regardless of its own height, and the top:-20px relative offset below
+   then shifts that already-bottom-anchored box uniformly -- so a taller
+   box's bottom still lands in the exact same place, only its top (and
+   visible content) extends further up. */
+.gamedaySilhouette {
+	width: 158px;
+	height: 475px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	position: relative;
+	top: -20px; /* was -10px -- confirmed live needed another ~10px up */
+}
+/* The screen-LEFT slot shows the RIGHT-handed batter's image and vice
+   versa -- see views/GamedayView.js's updateSilhouette comment for why
+   (broadcast convention: a right-handed batter's box is on the
+   screen-left side when viewed from the pitcher's mound). Confirmed live
+   this was backwards before this swap. left/right (not part of
+   .gamedaySilhouette, since these are direction-specific) nudge each
+   silhouette in toward home plate, confirmed live too far apart --
+   20px, then another 30px on top of that (50px total). */
+.gamedaySilhouetteLeft {
+	background-image: url(../imgs/righthanded.png);
+	left: 50px;
+}
+.gamedaySilhouetteRight {
+	background-image: url(../imgs/lefthanded.png);
+	left: -105px; /* was -90px, was -50px -- the lefthanded.png (left-handed batter) silhouette, moved another 15px left */
+}
+.gamedaySilhouetteHidden {
+	visibility: hidden;
+}
+
+/* batter/pitcher headshot + label + name + stat line
+   (views/GamedayPlayerCard.js). */
+.gamedayPlayerCard {
+	width: 220px;
+}
+.gamedayPlayerHeadshot {
+	/* MLB's headshot CDN returns 213x320 portrait photos (confirmed live),
+	   not square -- a 64x64 box was stretching them wider than their real
+	   proportions. 64x96 keeps the same real aspect ratio (213:320). */
+	width: 64px;
+	height: 96px;
+	-webkit-border-radius: 4px;
+	background-color: #e8e8e2; /* visible while the remote headshot loads/if it 404s */
+}
+.gamedayPlayerInfo {
+	/* margin, not padding-left -- with reverse:true (.gamedayPlayerCardReversed)
+	   the headshot renders on the OPPOSITE side, so a one-sided
+	   padding-left would leave no gap in that direction; a symmetric
+	   margin keeps a consistent gap next to the headshot either way. */
+	margin: 0 10px;
+}
+.gamedayPlayerLabel {
+	font-size: 0.75em;
+	font-weight: bold;
+	color: #87877e;
+}
+.gamedayPlayerName {
+	font-size: 1em;
+	font-weight: bold;
+	color: #333;
+}
+.gamedayPlayerStatLine {
+	font-size: 0.8em;
+	color: #555;
+}
+
+/* on-deck batter indicator (views/GamedayView.js's onDeck, atop the
+   play-by-play column) -- smaller than the main batter/pitcher cards
+   since it's a secondary indicator, no stat line needed. */
+.gamedayOnDeck {
+	padding: 10px;
+	border-bottom: 1px solid #9c9c8d;
+}
+.gamedayOnDeckHeadshot {
+	width: 40px;
+	height: 60px; /* same 213:320 real headshot aspect ratio as .gamedayPlayerHeadshot, scaled down */
+	-webkit-border-radius: 4px;
+	background-color: #e8e8e2;
+}
+.gamedayOnDeckText {
+	margin-left: 10px;
+	font-size: 0.85em;
+	color: #555;
+}
+.gamedayPitchDotsContainer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+.gamedayStrikeZoneRect {
+	position: absolute;
+	border: 2px solid #555;
+	background-color: rgba(255, 255, 255, 0.2); /* was transparent -- faint white fill so the zone reads as a real area, not just an outline */
+}
+.gamedayPitchDot {
+	position: absolute;
+	width: 20px;  /* was 10px -- doubled, too small to read clearly */
+	height: 20px; /* was 10px */
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+}
+/* .gamedayPitchLegendDot (below) shares these same color rules, so a
+   color changed here never needs a matching edit in the legend. */
+.gamedayPitchDot.pitchBall, .gamedayPitchLegendDot.pitchBall {
+	background-color: #4a9e4a;
+}
+.gamedayPitchDot.pitchStrike, .gamedayPitchLegendDot.pitchStrike {
+	background-color: #c0392b;
+}
+.gamedayPitchDot.pitchFoul, .gamedayPitchLegendDot.pitchFoul {
+	background-color: #e08e0b;
+}
+.gamedayPitchDot.pitchInPlay, .gamedayPitchLegendDot.pitchInPlay {
+	background-color: #7d3c98;
+}
+
+/* pitch-color key (views/GamedayView.js's pitchLegend) -- white rect at
+   30% opacity, bottom-left of the strike-zone/player area. Dots are
+   plain normal-flow circles (NOT .gamedayPitchDot, which is
+   position:absolute for its real job plotting pitch locations) sharing
+   just the color rules above via the same pitchBall/pitchStrike/
+   pitchFoul/pitchInPlay classes. */
+.gamedayPitchLegend {
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+	background-color: rgba(255, 255, 255, 0.3);
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+	padding: 8px 10px;
+}
+.gamedayPitchLegendRow {
+	display: -webkit-box;
+	-webkit-box-orient: horizontal;
+	-webkit-box-align: center;
+	margin-bottom: 4px;
+}
+.gamedayPitchLegendRow:last-child {
+	margin-bottom: 0;
+}
+.gamedayPitchLegendDot {
+	width: 14px;
+	height: 14px;
+	-webkit-border-radius: 7px;
+	border-radius: 7px;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+	margin-right: 6px;
+}
+.gamedayPitchLegendLabel {
+	font-size: 0.85em;
+	color: #333;
+}
+.gamedayNoPlays {
+	margin: 40px auto;
+	padding: 20px;
+	text-align: center;
+	font-size: 14px;
+	color: #666;
+}
+.gamedayPlayItem {
+	padding: 8px 10px;
+	border-bottom: 1px solid #A6A698;
+	border-top: 1px solid #FFF;
+}
+.gamedayPlayInning {
+	font-size: 0.75em;
+	font-weight: bold;
+	color: #87877e;
+	margin-bottom: 3px;
+}
+/* Header audio icon (mlb.GamedayHeader's audioButton). Deliberately NO
+   custom width/height/padding/border here -- views/ScoreboardView.js's own
+   audio icon button (mlb.ScoreboardHeader's gamedayAudioButton, the proven
+   -working precedent this was modeled on) has zero custom CSS of its own
+   and relies entirely on CustomButton's default chrome; a first attempt at
+   a custom-sized rounded-pill box here was suspected of leaving the visible
+   icon and its actual clickable hit area mismatched (tapping did nothing).
+   Only margin (layout spacing, doesn't affect the button's own hit box) is
+   added. */
+.gamedayAudioButton {
+	margin: 0 5px;
+}
+
+/* No Gameday-specific popup CSS here anymore -- openAudioPopup
+   (views/GamedayView.js) reuses views/AudioView.js's own mlb.AudioView
+   singleton and views/ScoreboardView.js's exact popup chrome (className
+   "audioPopup", styled in css/AudioView.css), just re-parented into this
+   pane's own scrim+Popup via renderInto. See openAudioPopup's comment. */
+
+.gamedayPlayDescription {
+	font-size: 0.9em;
+	color: #333;
+}

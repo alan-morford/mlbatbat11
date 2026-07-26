@@ -1,0 +1,4 @@
+var env = {};
+env.PROD="PROD";
+env.QA = "QA";
+env.currentEnv=env.PROD;

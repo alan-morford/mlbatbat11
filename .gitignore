@@ -1,0 +1,11 @@
+# Never commit real credentials. Created by the user directly in a text
+# editor, outside any agent tool call -- see harness/tests/okta.test.js.
+harness/.env.local
+
+# Build output
+dist/
+
+# Downloaded audio test clips (harness/tools/downloadArchivedClip.js)
+test-clips/
+
+node_modules/

@@ -1,0 +1,101 @@
+/* views/AudioView.js's login form inputs. Enyo's own Input.css
+ * (framework/source/palm/themes/Onyx/css/Input.css) sets the actual typed-
+ * text area's background to transparent in ALL states -- while focused, a
+ * light pill-shaped border image visually covers the dark space around it
+ * so it reads as a normal white field, but on blur that border goes
+ * transparent too, letting the popup's dark background (#1c1c1b) show
+ * straight through -- unreadable. inputClassName (an Input/PasswordInput
+ * published property) applies this class to the actual inner <input> node,
+ * not just the outer wrapper, which is what's needed to override it.
+ * !important guards against Input.css happening to load after this file. */
+.mlbLoginInput {
+	background-color: #ffffff !important;
+	color: #000000 !important;
+	border-radius: 4px;
+}
+
+/* views/AudioView.js's feed-list station-name buttons (feed1-4, RadioToolButton
+ * -> RadioButton -> IconButton). A caption set via setCaption()/the `caption`
+ * property does NOT land on the button's own root node -- IconButton.js
+ * renders it into a nested child named "caption" (className
+ * enyo-button-icon-text), which the framework ships with zero CSS of its own
+ * (confirmed against the SDK source: no rule anywhere targets that class).
+ * An earlier attempt at centering/truncating long station names applied
+ * style directly to the button config in AudioView.js, which only reaches
+ * that outer root node and silently did nothing to the actual text --
+ * captions were left uncentered and hard-clipped with no "..." truncation
+ * whenever they overflowed the button's fixed width. Scoped to
+ * .mlbFeedButton (set via className on feed1-4) rather than the bare
+ * enyo-button-icon-text class so this doesn't affect any other IconButton
+ * elsewhere in the app.
+ *
+ * height/line-height: 32px matches the height set on feed1-4 themselves in
+ * AudioView.js (needed because .enyo-grouped-toolbutton has no fixed height
+ * of its own, just vertical padding around the caption's natural line
+ * height, which was rendering the whole button shorter than its 40px
+ * toolbar row and pushing it to the top of that row -- text-align:center
+ * alone only ever centered the horizontal axis). Single line of text +
+ * matching line-height is what actually centers it vertically.
+ *
+ * width: 100% -- text-align:center only has anything to redistribute if
+ * this box is actually as wide as the button; without an explicit width it
+ * was shrinking to fit its own text (screenshot confirmed live: the grey
+ * button background visibly extended past the caption text on the right,
+ * with the text sitting flush against the button's left edge instead of
+ * centered in it) -- overflow/ellipsis still worked in that state since
+ * those only need SOME width, just not the button's own.
+ *
+ * !important on every property here -- a plain (non-!important) width:100%
+ * visibly failed to change anything on-device even though overflow/ellipsis
+ * from this SAME rule clearly did take effect, which only makes sense if
+ * something else in the cascade (a more specific framework rule, or width
+ * set directly as an inline style by IconButton/RadioButton's own layout
+ * code) wins on width/text-align specifically while having no opinion on
+ * overflow. !important forces this rule to win outright rather than
+ * continuing to guess at what it's losing to.
+ *
+ * Confirmed live (2026-07-26 screenshot): the !important pass above did
+ * fix horizontal centering. Vertical stayed broken through two more
+ * attempts at matching height/line-height by guessed pixel values (both
+ * on the caption alone, then also forcing the outer button's height) --
+ * the second attempt produced literally no visible change at all, which
+ * means the fight isn't really about which pixel value to use.
+ *
+ * Fix: stop trying to match heights and use the same mechanism this
+ * whole framework already leans on for centering -- old-WebKit flexbox
+ * (`-webkit-box`, the 2011-era syntax; this browser predates modern
+ * `display:flex`). This is exactly what already vertically centers the
+ * date-nav row's "<"/">" arrow buttons, just declared on Enyo's own
+ * enyo.HFlexBox kind (see dateNavBox in AudioView.js) instead of raw
+ * CSS. `-webkit-box-align:center` centers a box's children along the
+ * cross axis regardless of their own height, sidestepping the whole
+ * "what is this button's real rendered height" question entirely.
+ *
+ * display is deliberately NOT !important, unlike everything else in this
+ * file -- confirmed live (2026-07-26) that it was overriding Enyo's own
+ * hide mechanism: showing:false sets the INLINE style display:none
+ * directly (framework/source/dom/DomNode.js's syncDisplayToShowing), and
+ * !important in a stylesheet beats even inline styles, so every feed
+ * button was stuck visibly on-screen regardless of clearFeeds()/hide()
+ * ever being called -- all 4 showed on popup open, and unused feed
+ * slots (e.g. feed3/feed4 for a 2-feed game) stayed visible too. Without
+ * !important, this rule only wins while the inline style is unset
+ * (the showing:true/normal case, since Enyo clears the inline override
+ * rather than setting an explicit display value then) and correctly
+ * loses to the inline display:none Enyo sets while hidden. */
+.mlbFeedButton {
+	display: -webkit-box;
+	-webkit-box-orient: horizontal !important;
+	-webkit-box-align: center !important;
+	-webkit-box-pack: center !important;
+}
+.mlbFeedButton .enyo-button-icon-text {
+	display: block !important;
+	box-sizing: border-box !important;
+	width: 100% !important;
+	padding: 0 4px !important;
+	white-space: nowrap !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	text-align: center !important;
+}

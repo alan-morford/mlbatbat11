@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HLS Spike Test</title>
+<style>
+	/* webOS card apps don't get native page scroll for free the way a
+	   regular mobile browser tab does -- the WebKit view is sized exactly
+	   to the screen with no scroll/bounce by default. #scrollWrapper is an
+	   explicit absolutely-positioned, overflow-scrolling container (the
+	   plain-HTML equivalent of the main app's Enyo "Scroller" widget, used
+	   everywhere there for the same reason). */
+	html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #222; }
+	#scrollWrapper {
+		position: absolute;
+		top: 0; left: 0; right: 0; bottom: 0;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		box-sizing: border-box;
+		padding: 20px;
+		font-family: sans-serif;
+		color: #eee;
+	}
+	h2 { margin-top: 0; }
+	.row { margin-bottom: 30px; padding: 15px; border: 1px solid #555; }
+	.status { font-weight: bold; margin-top: 10px; padding: 8px; }
+	.status.ok { color: #fff; background-color: #2f7a2f; }
+	.status.fail { color: #fff; background-color: #a5271f; }
+	.status.pending { color: #222; background-color: #e0a80b; }
+	button { padding: 10px 16px; font-size: 14px; margin-top: 10px; margin-right: 8px; }
+	audio, video { width: 100%; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="scrollWrapper">
+
+<h2>HLS Playback Spike Test</h2>
+<p><b>Round 1 result: both HLS streams below failed identically (error
+code=2) regardless of codec/bitrate complexity.</b> That pattern points away
+from "codec too demanding" and toward this WebKit's &lt;audio&gt;/&lt;video&gt;
+elements simply not parsing HLS playlists at all -- native inline HLS-in-
+&lt;video&gt; was historically an Apple/Safari-specific WebKit extension, not
+a universal WebKit capability, and webOS's WebKit fork isn't the Safari
+branch. Two new tests below narrow this down further.</p>
+
+<div class="row">
+	<h3>Round 2a: direct (non-HLS) MP3 file</h3>
+	<p>Isolates whether basic inline &lt;audio&gt; playback works at all on
+	this device, independent of HLS.</p>
+	<audio id="mp3El" controls></audio>
+	<div id="mp3Status" class="status pending">Not started</div>
+	<button onclick="testEl('mp3El','mp3Status', MP3_URL)">Test Direct MP3</button>
+</div>
+
+<div class="row">
+	<h3>Round 2b: tap-to-open HLS link (not JS-driven)</h3>
+	<p>Tests whether tapping an .m3u8 link hands off to the device's native
+	media player app instead of trying to play inline -- if the OS-level
+	"supports .m3u8" association you saw is a launcher/file-type thing
+	rather than an in-page WebKit capability, this is what would prove it.</p>
+	<p><a href="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">Tap to open simple HLS stream</a></p>
+	<p><a href="https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8">Tap to open Apple Advanced HLS stream</a></p>
+</div>
+
+<div class="row">
+	<h3>Round 1 (already run): inline HLS via JS -- both failed, kept for reference</h3>
+	<audio id="audioEl" controls></audio>
+	<div id="audioStatus" class="status pending">Not started</div>
+	<button onclick="testEl('audioEl','audioStatus', APPLE_URL)">Test Apple Advanced</button>
+	<button onclick="testEl('audioEl','audioStatus', MUX_URL)">Test Simple (H.264/AAC)</button>
+
+	<video id="videoEl" controls></video>
+	<div id="videoStatus" class="status pending">Not started</div>
+	<button onclick="testEl('videoEl','videoStatus', APPLE_URL)">Test Apple Advanced</button>
+	<button onclick="testEl('videoEl','videoStatus', MUX_URL)">Test Simple (H.264/AAC)</button>
+</div>
+
+</div>
+<script>
+// webOS apps must tell the system shell they've finished loading, or the
+// card stays stuck in a transitional "still launching" state indefinitely.
+// Enyo's framework does this for you internally as part of its own
+// bootstrap (which is why the main At Bat app doesn't need this) -- this
+// page loads no framework at all, so it has to call it directly.
+if (window.PalmSystem && PalmSystem.stageReady) {
+	PalmSystem.stageReady();
+}
+
+// 1080p60, H.264 High Profile 4.2, AC-3/EC-3 (Dolby) audio tracks, closed
+// captions + subtitle groups -- Apple's current (2024) "advanced" example,
+// a lot of codec/complexity for 2011-era hardware.
+var APPLE_URL = "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8";
+
+// Plain H.264 baseline/main + AAC, no Dolby, no captions/subtitles, has a
+// real low-bitrate 240p/246kbps rendition. Widely-used public HLS.js test
+// asset, confirmed live.
+var MUX_URL = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+
+// Plain direct MP3 file, not HLS at all -- confirmed live, audio/mpeg,
+// ~8.5MB. Isolates basic <audio> playback capability from HLS parsing.
+var MP3_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+
+var wired = {};
+
+function setStatus(statusEl, cls, text) {
+	statusEl.className = "status " + cls;
+	statusEl.textContent = text;
+}
+
+function wireStatus(el, statusEl, elId) {
+	if (wired[elId]) {
+		return;
+	}
+	wired[elId] = true;
+
+	el.addEventListener("loadedmetadata", function() {
+		setStatus(statusEl, "ok", "loadedmetadata fired -- manifest parsed OK, duration=" + el.duration);
+	});
+	el.addEventListener("canplay", function() {
+		setStatus(statusEl, "ok", "canplay fired -- playback should work");
+	});
+	el.addEventListener("playing", function() {
+		setStatus(statusEl, "ok", "playing fired -- HLS IS WORKING");
+	});
+	el.addEventListener("error", function() {
+		var err = el.error;
+		var code = err ? err.code : "unknown";
+		setStatus(statusEl, "fail", "error event fired, code=" + code + " -- playback FAILED");
+	});
+	el.addEventListener("stalled", function() {
+		setStatus(statusEl, "pending", "stalled event fired (still loading)");
+	});
+}
+
+function testEl(elId, statusId, url) {
+	var el = document.getElementById(elId);
+	var statusEl = document.getElementById(statusId);
+	setStatus(statusEl, "pending", "Loading " + url + " ...");
+	wireStatus(el, statusEl, elId);
+	el.src = url;
+	el.load();
+	el.play();
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,103 @@
+<project name="Palm AtBat" default="dist" basedir=".">
+  
+  <property name="build" location="build"/>
+  <property name="dist"  location="dist"/>
+  <property file="build.properties" />
+  	<property file="local.properties" />
+
+	<target name="create-files">
+		<antcall target="create-env-js"/>	
+		<antcall target="create-appinfo-json"/>	
+	</target>
+	<target name="create-env-js">
+	    	<copy todir="${basedir}/lib">
+	            <fileset dir="${basedir}/build/templates">
+	                <include name="Env.js.template" />
+	            </fileset>
+	        </copy>
+
+	        <replace dir="${basedir}/lib" value="${environment}">
+	            <include name="Env.js.template" />
+	            <replacetoken>{environment}</replacetoken>
+	        </replace>
+
+        <delete file="${basedir}/lib/Env.js" />
+
+        <move file="${basedir}/lib/Env.js.template" tofile="${basedir}/lib/Env.js" />
+	</target>
+	
+	<target name="create-appinfo-json">
+	    	<copy todir="${basedir}">
+	            <fileset dir="${basedir}/build/templates">
+	                <include name="appinfo.json.template" />
+	            </fileset>
+	        </copy>
+
+	        <replace dir="${basedir}" value="${id}">
+	            <include name="appinfo.json.template" />
+	            <replacetoken>{id}</replacetoken>
+	        </replace>
+
+	        <replace dir="${basedir}" value="${version}">
+	            <include name="appinfo.json.template" />
+	            <replacetoken>{version}</replacetoken>
+	        </replace>
+		
+        <delete file="${basedir}/appinfo.json" />
+
+        <move file="${basedir}/appinfo.json.template" tofile="${basedir}/appinfo.json" />
+	</target>
+	
+  <target name="clean">
+    <delete dir="dist" />
+    <delete dir="bin" />
+  </target>
+	
+  <target name="build-all" depends="clean">
+	<antcall target="build-qa"/>
+	<antcall target="build-prod"/>
+  </target>
+     	
+  <target name="switch-env-prod">
+    	<antcall target="create-files">
+       		<param name="environment" value="PROD"/>
+    	</antcall>
+  </target>
+	             	
+  <target name="switch-env-qa">
+    	<antcall target="create-files">
+       		<param name="environment" value="QA"/>
+    	</antcall>  	
+  </target>
+	
+
+	<target name="build-qa" depends="switch-env-qa" description="generate files, build release mode apks">
+		<mkdir dir="dist" />
+		<antcall target="dist"/>
+		<move file="bin/${id}_${version}_all.ipk" tofile="${dist}/hp-atbat-${version}-qa.ipk"/>
+	</target>
+	            	
+	
+  <target name="build-prod" depends="switch-env-prod" description="generate files, build release mode apks">
+		<mkdir dir="dist" />
+  		<antcall target="dist"/>
+		<move file="bin/${id}_${version}_all.ipk" tofile="${dist}/hp-atbat-${version}.ipk"/>
+  </target>
+
+  <target name="dist">
+	<mkdir dir="bin" />
+  	
+  	<exec executable="${sdk.bin}/palm-package">
+		<arg value="${basedir}"/>
+		<arg value="-o"/>
+		<arg value="bin"/>
+		<arg value="--exclude"/>
+		<arg value="build"/>
+		<arg value="--exclude"/>
+		<arg value="dist"/>
+		<arg value="--exclude"/>
+		<arg value="bin"/>
+  	</exec>
+  </target>
+
+</project>
