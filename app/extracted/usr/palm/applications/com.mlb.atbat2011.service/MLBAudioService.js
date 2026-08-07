@@ -991,6 +991,18 @@ function httpRequest(args, callback) {
 	// rather than erroring, which is a much worse failure mode than just
 	// adding this unconditionally (a no-op against an uncompressed reply).
 	var curlArgs = ['-ksS', '--compressed', '-X', (args.method || 'POST'), '-w', '\n%{http_code}'];
+	// Opt-in only (views/ArticleReaderView.js sets this for article-page
+	// GETs, e.g. old-style espn.com/mlb/recap?gameId=... links that 301 to
+	// their real URL -- confirmed live, see mlbatbat_espn_akamai_block-
+	// adjacent ArticleReader logging) -- deliberately NOT the default for
+	// every caller of this shared command: curl's -L on a redirected POST
+	// silently downgrades to a GET past the redirect (no --post301/302/303
+	// here), which isn't a behavior change worth risking on the Okta login/
+	// GraphQL POST calls this same command also serves, for a problem that
+	// GET requests are actually the ones with here.
+	if (args.followRedirects) {
+		curlArgs.push('-L');
+	}
 	var headers = args.headers || {};
 	for (var k in headers) {
 		curlArgs.push('-H', k + ': ' + headers[k]);

@@ -17,7 +17,7 @@ var SportsLogger = {};
 // never attempts to open /media/internal/sports.log at all, so a normal
 // release doesn't write anything to the device's filesystem or the
 // localStorage fallback.
-SportsLogger.ENABLED = false;
+SportsLogger.ENABLED = true;
 
 SportsLogger._writer = null;
 SportsLogger._fileReady = false;

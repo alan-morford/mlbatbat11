@@ -116,6 +116,11 @@ enyo
 										},
 										{
 											flex : 1,
+											kind : "mlb.AbsStatsView",
+											name : "AbsStats"
+										},
+										{
+											flex : 1,
 											kind : "mlb.StandingsView",
 											name : "Standings"
 										// style: "width:100%; height: 500"

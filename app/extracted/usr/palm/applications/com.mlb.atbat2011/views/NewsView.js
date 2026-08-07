@@ -12,6 +12,25 @@
 // data/MLBTeamReference.js (fresh) instead of data/clubProps.js (stale
 // 2011 data), and team filtering is exact (server-side team= param),
 // unlike an earlier RSS-based attempt that needed fuzzy client-side matching.
+//
+// Confirmed live via on-device SportsLogger (2026-08-07): ESPN's Akamai edge
+// 403s this app's own WebKit XHR requesting this endpoint every single time
+// ("Access Denied", AkamaiGHost), even though the identical request succeeds
+// from a dev machine -- same shape as the Okta ROPC block this app already
+// works around (see lib/AudioFlow.js's login()/httpRequestCmd), so
+// mlb.MLBNewsView.getArticles routes this fetch through
+// com.mlb.atbat2011.service's curl-backed httpRequest command instead of
+// this WebService's own call(), which is kept only for URL building now.
+var NewsDebug = {
+	safeStringify : function(obj) {
+		try {
+			return JSON.stringify(obj).substring(0, 500);
+		} catch (e) {
+			return "" + obj;
+		}
+	}
+};
+
 enyo
 		.kind( {
 			name : "mlb.ArticleListItem",
@@ -193,8 +212,26 @@ enyo.kind( {
 			onclick : "articleListItemClick"
 		} ]
 	}, {
+		// Never .call()ed directly -- kept only so its urlTemplate (see
+		// lib/WebServices.js) stays the single source of truth for the URL,
+		// built via its own getUrl(). The actual fetch goes through
+		// getNewsHttp below instead of this WebService's own XHR-backed
+		// call(): confirmed live via on-device SportsLogger that ESPN's
+		// Akamai edge (AkamaiGHost) 403s this app's real WebKit request
+		// every single time ("Access Denied"), identical in shape to the
+		// Okta ROPC block this app already routes around (see
+		// lib/AudioFlow.js's login()/httpRequestCmd) -- some
+		// fingerprint/header of the in-app WebKit XHR gets flagged as a bot
+		// regardless of what this code sends, so the fix is the same:
+		// route the request through com.mlb.atbat2011.service's curl-backed
+		// httpRequest command instead of this app's own networking stack.
 		name : "getNews",
-		kind : "NewsJSONService",
+		kind : "NewsJSONService"
+	}, {
+		name : "getNewsHttp",
+		kind : "PalmService",
+		service : "palm://com.mlb.atbat2011.service/",
+		method : "httpRequest",
 		onSuccess : "gotNews",
 		onFailure : "newsFailed"
 	} ],
@@ -214,9 +251,14 @@ enyo.kind( {
 		if (!item.article) {
 			return;
 		}
-		Views["GenericWebView"].title = item.article.title;
-		Views["GenericWebView"].params = { "url" : item.article.link };
-		main.showViewInMiddle("GenericWebView", Views["GenericWebView"]);
+		// this.owner is mlb.NewsView itself (static nesting -- see mlb.NewsView's
+		// own components: articleList sits inside articleListPane, but Enyo 1
+		// still resolves owner to the outermost enclosing kind, matching how
+		// mlb.NewsViewHeader.setDefaultClicked already delegates to
+		// this.owner.setDefaultTeam() above).
+		if (this.owner && this.owner.showArticle) {
+			this.owner.showArticle(item.article);
+		}
 	},
 
 	// Server-side filtered now (ESPN's team= param), so each team switch
@@ -229,24 +271,41 @@ enyo.kind( {
 			"team" : (team && team.espnSlug) ? team.espnSlug : "",
 			"limit" : 10
 		};
-		this.$.getNews.call();
+		var url = this.$.getNews.getUrl();
+		SportsLogger.log("News", "requesting (via httpRequest) " + url);
+		this.$.getNewsHttp.call({ url : url, method : "GET" });
 	},
 	refresh : function() {
 		this.getArticles(this.currentTeam);
 	},
-	gotNews : function(inSender, inResponse, inRequest) {
+	// inResponse here is com.mlb.atbat2011.service's httpRequest result
+	// shape: { returnValue, status, json, raw }, not a raw XHR/WebService
+	// response -- see MLBAudioService.js's httpRequest for the contract.
+	gotNews : function(inSender, inResponse) {
 		main.hideMiddleSpinner();
+		var status = inResponse && inResponse.status;
+		var isSuccess = status === 0 || (status >= 200 && status < 300);
+		if (!isSuccess || !inResponse.json) {
+			SportsLogger.log("News", "gotNews: non-success, status=" + status +
+				", raw=" + NewsDebug.safeStringify(inResponse && inResponse.raw));
+			this.articles = [];
+			this.$.newsList.refresh();
+			return;
+		}
 		try {
-			this.articles = NewsParser.parseNewsFromJSON(inResponse);
+			this.articles = NewsParser.parseNewsFromJSON(inResponse.json);
+			SportsLogger.log("News", "gotNews: " + this.articles.length + " articles, status=" + status);
 		}
 		catch (e) {
 			console.log("gotNews parse error: " + e);
+			SportsLogger.log("News", "gotNews parse error: " + e);
 			this.articles = [];
 		}
 		this.$.newsList.refresh();
 	},
-	newsFailed : function() {
+	newsFailed : function(inSender, inResponse) {
 		main.hideMiddleSpinner();
+		SportsLogger.log("News", "newsFailed: " + NewsDebug.safeStringify(inResponse));
 		this.articles = [];
 		this.$.newsList.refresh();
 	}
@@ -255,28 +314,72 @@ enyo.kind( {
 enyo.kind( {
 	name : "mlb.NewsView",
 	className : "newsView",
-	kind : enyo.VFlexBox,
+	// Built on webOS's own SlidingPane/SlidingView (see devkit SDK
+	// framework/source/palm/containers/SlidingPane.js + SlidingView.js) rather
+	// than hand-rolled position:absolute + drag math -- an earlier attempt at
+	// that got the overlap geometry wrong twice (a leftover gap, then article
+	// text overflowing past pane 2's own edge) because SlidingPane already
+	// solves exactly this "one view slides over another, peekWidth reveals
+	// how much stays visible underneath" problem, proven elsewhere in this
+	// app (Panels2.js's own leftSlidingView/rightPane). Trade-off: selecting
+	// a view snaps/animates to its resting position rather than a free
+	// continuous drag to an arbitrary width.
+	kind : "SlidingPane",
 	flex : 1,
+	// This app is a fixed 1024x768-landscape TouchPad layout, never the
+	// narrow/stacked mode SlidingPane falls back to below multiViewMinWidth.
+	multiViewMinWidth : 0,
 
-	style : "background-color:#E7E7DB",
 	components : [ {
-		kind: "enyo.ApplicationEvents",
-		name: "appEvents",
-		onWindowActivated:"windowActivated"
-	}, {
-		name : "newsViewHeader",
-		kind : "mlb.NewsViewHeader",
-		flex : 0
-	}, {
-		name : "articleList",
-		kind : "mlb.MLBNewsView",
-		flex : 1
-	}, {
-		kind : "Toolbar",
-		height : "40px",
-		flex : 0,
+		// Pane 2 (article list) -- SlidingPane's defaultKind is SlidingView,
+		// so this (and articlePane below) become SlidingViews without an
+		// explicit kind, same as this app's own top-level leftSlidingView.
+		name : "articleListPane",
+		width : "824px",
 		components : [ {
-			kind : "GrabButton"
+			kind: "enyo.ApplicationEvents",
+			name: "appEvents",
+			onWindowActivated:"windowActivated"
+		}, {
+			name : "newsViewHeader",
+			kind : "mlb.NewsViewHeader",
+			flex : 0
+		}, {
+			name : "articleList",
+			kind : "mlb.MLBNewsView",
+			flex : 1
+		}, {
+			kind : "Toolbar",
+			height : "40px",
+			flex : 0,
+			components : [ {
+				kind : "GrabButton"
+			} ]
+		} ]
+	}, {
+		// Pane 3 (article view). It's the last view in the pane, which
+		// SlidingPane auto-flexes to fill remaining space UNLESS fixedWidth
+		// is set -- we want our own explicit width, so fixedWidth:true.
+		// peekWidth is how much of pane 2 (the view "underneath") stays
+		// visible on the left once this pane is selected/slid over it --
+		// this is the actual overlap mechanism, handled by the framework.
+		//
+		// mlb.ArticleReaderView (views/ArticleReaderView.js), not the
+		// Atlas-backed mlb.GenericWebView -- the live Atlas WPE embed was
+		// too slow to be useful in practice; this fetches the article HTML
+		// via the curl-backed httpRequest service and runs it through
+		// Mozilla Readability instead, falling back to the same
+		// Atlas-patched WebView only if that extraction fails. Same
+		// external contract (params/title/show()) as mlb.GenericWebView,
+		// so this is otherwise a drop-in swap -- see showArticle below.
+		name : "articlePane",
+		width : "450px",
+		fixedWidth : true,
+		peekWidth : 412,
+		components : [ {
+			name : "articleWebView",
+			kind : "mlb.ArticleReaderView",
+			flex : 1
 		} ]
 	} ],
 
@@ -287,6 +390,11 @@ enyo.kind( {
 	initialized : false,
 
 	show : function() {
+		// Per spec: re-selecting the News tab always resets pane 3 back to
+		// closed, even if an article was open last time -- only tapping an
+		// article (showArticle below) selects/opens it again.
+		this.$.articleListPane.select();
+
 		if (!this.initialized) {
 			this.initialized = true;
 			var defaultTeam = this.getDefaultTeam();
@@ -297,6 +405,16 @@ enyo.kind( {
 		}
 		this.$.articleList.getArticles(this.$.articleList.currentTeam);
 		this.updateSetDefaultButtonVisibility(this.$.articleList.currentTeam);
+	},
+
+	showArticle : function(article) {
+		if (!article || !article.link) {
+			return;
+		}
+		this.$.articleWebView.title = article.title;
+		this.$.articleWebView.params = { "url" : article.link };
+		this.$.articleWebView.show();
+		this.$.articlePane.select();
 	},
 
 	windowActivated: function() {

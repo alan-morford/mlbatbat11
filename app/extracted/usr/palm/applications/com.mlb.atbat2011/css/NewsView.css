@@ -27,11 +27,16 @@
 	font-weight:bold;
 	margin-bottom: 10px;
 	font-size:120%;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 .articleListItemBlurb {
 	line-height: 150%;
+	white-space: nowrap;
+	overflow: hidden;
 }
+
 .articleListItemImage {
 	margin-right:20px;
 }
@@ -66,6 +71,27 @@
 }
 .fullArticleView p {
 	margin-bottom:15px;
+}
+
+/* mlb.ArticleReaderView (views/ArticleReaderView.js) -- Readability-
+   extracted article content, reusing .fullArticleView/.articleTitle/
+   .articleByLine/.articleBody above (originally built for the pre-ESPN
+   full-article render, unused since, now reused here for real). The
+   article pane is a fixed 450px wide -- extracted content can carry
+   images/tables/iframes-turned-divs sized for a full desktop article page,
+   so max-width:100% keeps them from forcing horizontal overflow. */
+.articleReaderScroller .fullArticleView {
+	padding-top:20px;
+	padding-left:20px;
+	padding-right:20px;
+}
+.articleReaderScroller .fullArticleView img,
+.articleReaderScroller .fullArticleView figure,
+.articleReaderScroller .fullArticleView table {
+	max-width:100%;
+}
+.articleReaderScroller .fullArticleView .articleBody a {
+	color:#00529C;
 }
 
 
