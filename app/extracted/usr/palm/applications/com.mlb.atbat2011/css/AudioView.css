@@ -11,7 +11,46 @@
 .mlbLoginInput {
 	background-color: #ffffff !important;
 	color: #000000 !important;
-	border-radius: 4px;
+	border-radius: 20px !important;
+	/* line-height matching .mlbLoginInputBox's own fixed 40px height --
+	 * per direct user feedback the typed text wasn't vertically centered.
+	 * Same "match line-height to a known fixed height" technique already
+	 * used throughout this app (e.g. the calendar nav buttons) instead of
+	 * fighting the input's own padding/margin box model directly. */
+	line-height: 40px !important;
+}
+
+/* Outer wrapper (the Input/PasswordInput kind's own root, via className --
+ * distinct from inputClassName/.mlbLoginInput above, which only reaches the
+ * inner <input> node) -- per direct user feedback, these visibly grew when
+ * tapped. Enyo's own Input.css swaps in a DIFFERENT -webkit-border-image
+ * (input-focus.png, sized differently than the unfocused artwork) via
+ * .enyo-input-focus, and/or an enyo-first/enyo-last row-position class with
+ * its own asymmetric border-width, on focus -- confirmed against the real
+ * theme CSS. Replacing the whole border-image mechanism with a plain CSS
+ * border, identical for every state (no separate focus/first/last rule
+ * exists for THIS class to switch to), removes anything left to resize.
+ * !important beats both the base and focus theme rules outright.
+ *
+ * border-radius:20px (half of the 40px height) -- a true pill shape, not
+ * a boxy rounded-rect -- per direct user feedback (screenshot) that a
+ * plain 4px-radius flat box read as generic/web-styled rather than
+ * matching webOS's own native pill-shaped input chrome (which this can't
+ * reproduce exactly without its border-image artwork, per the resize bug
+ * above, but a real pill shape + inset shadow reads as much more
+ * "native app" than a flat rectangle). The inset shadow approximates that
+ * chrome's own recessed/tactile look. */
+.mlbLoginInputBox {
+	-webkit-border-image: none !important;
+	border: 1px solid #999 !important;
+	border-radius: 20px !important;
+	-webkit-box-shadow: inset 0 1px 3px rgba(0,0,0,0.3) !important;
+	padding: 0 16px !important;
+	height: 40px !important;
+	box-sizing: border-box !important;
+	-webkit-box-sizing: border-box !important;
+	overflow: hidden !important;
+	background-color: #ffffff !important;
 }
 
 /* views/AudioView.js's feed-list station-name buttons (feed1-4, RadioToolButton

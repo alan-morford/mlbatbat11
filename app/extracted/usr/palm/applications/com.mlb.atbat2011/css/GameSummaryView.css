@@ -1,0 +1,176 @@
+/* views/GameSummaryView.js's mlb.GameSummaryContent. position:relative
+   anchors .videoPlaybackOverlay (css/VideosView.css, reused as-is -- see
+   that view's own header comment on position:absolute/top/left/right/
+   bottom:0 needing a positioned ancestor). */
+.gameSummaryContent {
+	position: relative;
+}
+/* mlb.GameSummaryPlayByPlayContent's header title, next to its "< Summary"
+   back button (.gamedayBackButton, css/GamedayView.css, reused as-is -- see
+   that view's own header comment on why this pane uses an explicit button
+   rather than swipe/GrabButton). */
+.gameSummaryPlayByPlayTitle {
+	color: white;
+	font-weight: bold;
+	font-size: 130%;
+	padding-left: 10px;
+}
+/* -webkit-border-image:none -- see css/ScoreboardView.css's .prevButton/
+   .nextButton for why. */
+.gameSummaryPlayByPlayButton {
+	-webkit-border-image: none !important;
+	width: 150px;
+	height: 20px;
+	color: #ccc;
+	border-top: 1px solid #000;
+	border-bottom: 1px solid #5a5a5a !important;
+	background-color: #000;
+	text-align: center;
+	padding: 5px 0;
+	margin: 0 10px;
+	-webkit-border-radius: 15px;
+}
+
+/* mlb.GamedayLinescore (css/GamedayView.css's .gamedayLinescore/
+   .linescoreTable etc., reused as-is -- same widget views/GamedayView.js's
+   own live view uses) normally sits inside that view's own dark topBar
+   panel; here it's the first thing in a plain white scroller, so just a
+   little breathing room around it. */
+.gameSummaryLinescoreWrap {
+	padding: 12px 12px 0;
+}
+
+.gameSummarySection {
+	padding: 12px;
+	border-top: 1px solid #ddd;
+}
+.gameSummarySectionHeader {
+	font-weight: bold;
+	font-size: 1.1em;
+	margin-bottom: 8px;
+	color: #333;
+}
+.gameSummaryLoading {
+	padding: 8px 0;
+	color: #666;
+	text-align: center;
+}
+
+/* Video (left, fixed width) + Top Players (right, fills remaining width) --
+   side by side in one enyo.HFlexBox row (see views/GameSummaryView.js). */
+.gameSummaryVideoCol {
+	width: 320px;
+	margin-right: 20px;
+}
+.gameSummaryPerformersCol {
+	/* flex:1 (set in views/GameSummaryView.js) fills whatever's left of the
+	   row next to the fixed-width video column. */
+}
+
+/* Highlight video tile -- single tile, not views/VideosView.js's grid, so
+   plain stacked block children (Image then text) rather than that view's
+   float-based .videoGridTile. */
+.gameSummaryVideoTile {
+	cursor: pointer;
+}
+.gameSummaryVideoThumb {
+	width: 320px;
+	height: 180px;
+	display: block;
+	-webkit-border-radius: 4px;
+}
+.gameSummaryVideoHeadline {
+	font-weight: bold;
+	color: #333;
+	padding: 6px 0;
+	max-width: 320px;
+}
+/* Same footprint as .gameSummaryVideoThumb above (320x180) so this "no clip
+   yet" placeholder doesn't shift the Top Players column beside it, or the
+   page height, once a highlight later appears for the same game -- border
+   width subtracted from the declared width/height rather than relying on
+   box-sizing:border-box, which this codebase's CSS doesn't use anywhere
+   else on this old WebKit (content-box is the default/only style used
+   elsewhere -- see this project's own established convention). */
+.gameSummaryVideoUnavailable {
+	width: 316px;
+	height: 176px;
+	border: 2px dashed #999;
+	-webkit-border-radius: 4px;
+}
+.gameSummaryVideoUnavailableText {
+	color: #666;
+	font-style: italic;
+	text-align: center;
+	padding: 0 16px;
+}
+
+/* Top performers -- same real 213:320 headshot aspect-ratio fix as
+   css/AbsTeamsView.css's .absPlayerRowHeadshot. */
+.gameSummaryPerformerRow {
+	padding: 8px 0;
+	border-bottom: 1px solid #eee;
+}
+.gameSummaryPerformerHeadshot {
+	width: 33px;
+	height: 50px;
+	margin-right: 12px;
+	-webkit-border-radius: 4px;
+}
+.gameSummaryPerformerName {
+	font-weight: bold;
+}
+.gameSummaryPerformerSummary {
+	font-size: 0.85em;
+	color: #666;
+}
+
+/* Recap headline -- same tappable-link look as css/NewsView.css's own
+   .articleTitle context (blue/underline makes it read as tappable, that
+   file's own list rows rely on row padding/borders instead since the whole
+   row is tappable there; here it's just the one line). */
+.gameSummaryRecapHeadline {
+	color: #0645ad;
+	text-decoration: underline;
+	cursor: pointer;
+	padding: 4px 0;
+}
+
+/* Box score -- same enyo.HtmlContent + plain <table> technique as
+   css/AbsTeamsView.css's .absPlayerStatsTable. */
+.gameSummaryBoxTeamName {
+	font-weight: bold;
+	font-size: 1.05em;
+	margin: 10px 0 4px;
+	color: #333;
+}
+.gameSummaryBoxTable {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.8em;
+	margin-bottom: 10px;
+}
+.gameSummaryBoxTable th, .gameSummaryBoxTable td {
+	padding: 4px 6px;
+	text-align: center;
+	border-bottom: 1px solid #ddd;
+}
+.gameSummaryBoxTable th {
+	background-color: #f0f0e8;
+	font-weight: bold;
+}
+.gameSummaryBoxNameCol {
+	text-align: left !important;
+}
+.gameSummaryBoxPos {
+	color: #888;
+	font-size: 0.9em;
+}
+.gameSummaryBoxNote {
+	color: #888;
+	font-style: italic;
+}
+.gameSummaryBoxTotalsRow {
+	font-weight: bold;
+	background-color: #f7f7f2;
+}

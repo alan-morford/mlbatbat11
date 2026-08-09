@@ -208,6 +208,18 @@ enyo
 				this.$.scoreboardList.setGames([]);
 			},
 			openGamedayForGame : function(game) {
+				// Final games open the Game Summary (score/box score/top
+				// players/highlight video/recap) instead of the live Gameday
+				// view -- see views/GameSummaryView.js. Its own
+				// "Play-by-Play" button reaches this exact original Gameday
+				// flow for anyone who still wants it, unchanged, for
+				// in-progress/preview games.
+				if (game.status && game.status.isFinal) {
+					Views["GameSummary"].setGame(game);
+					main.showViewInMiddle("GameSummary", Views["GameSummary"]);
+					Track("GameSummary_Popup");
+					return;
+				}
 				Views["Gameday"].setGame(game.gamePk, game.status.detailedState);
 				main.showViewInMiddle("Gameday", Views["Gameday"]);
 				Track("GameDay_Popup");

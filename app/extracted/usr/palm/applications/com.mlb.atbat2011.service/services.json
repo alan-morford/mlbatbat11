@@ -13,7 +13,14 @@
 			{ "name": "getStatus", "assistant": "GetStatusCommandAssistant", "public": true },
 			{ "name": "setVolume", "assistant": "SetVolumeCommandAssistant", "public": true },
 			{ "name": "getVolume", "assistant": "GetVolumeCommandAssistant", "public": true },
-			{ "name": "httpRequest", "assistant": "HttpRequestCommandAssistant", "public": true }
+			{ "name": "httpRequest", "assistant": "HttpRequestCommandAssistant", "public": true },
+			{ "name": "getAbsChallengeEvents", "assistant": "GetAbsChallengeEventsCommandAssistant", "public": true },
+			{ "name": "downloadEspnVideo", "assistant": "DownloadEspnVideoCommandAssistant", "public": true },
+			{ "name": "downloadEspnVideoHls", "assistant": "DownloadEspnVideoHlsCommandAssistant", "public": true },
+			{ "name": "getEspnVideoDownloadStatus", "assistant": "GetEspnVideoDownloadStatusCommandAssistant", "public": true },
+			{ "name": "rememberCredentials", "assistant": "RememberCredentialsCommandAssistant", "public": true },
+			{ "name": "getRememberedCredentials", "assistant": "GetRememberedCredentialsCommandAssistant", "public": true },
+			{ "name": "forgetCredentials", "assistant": "ForgetCredentialsCommandAssistant", "public": true }
 		]
 	}]
 }

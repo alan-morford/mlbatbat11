@@ -32,6 +32,10 @@ enyo.kind({
 	name : "mlb.ArticleReaderView",
 	kind : "enyo.VFlexBox",
 	flex : 1,
+	// Anchor for fullScreenOverlay's position:absolute below -- it needs to
+	// cover this entire view, not just whatever ancestor happens to be
+	// position:relative further up the tree.
+	className : "articleReaderView",
 	published : {
 		params : null,
 		title : ""
@@ -59,6 +63,41 @@ enyo.kind({
 			kind : "GrabButton"
 		} ]
 	}, {
+		// Full-screen image viewer -- shown/hidden in place (position:
+		// absolute over the whole view, see .articleFullScreenOverlay)
+		// rather than a separate pane/SlidingPane pane, since it's a
+		// same-article detail popup, not real navigation. Tapping the
+		// featured image thumbnail below routes here via readerLinkClick's
+		// "abt-fullscreen-image:" scheme -- reusing enyo.HtmlContent's
+		// existing onLinkClick tap-interception instead of inventing a new
+		// tap mechanism on this old WebKit for the thumbnail itself.
+		name : "fullScreenOverlay",
+		kind : "enyo.VFlexBox",
+		className : "articleFullScreenOverlay",
+		showing : false,
+		components : [ {
+			className : "articleFullScreenClose",
+			// Plain ASCII, not a Unicode "X"-mark -- confirmed live this old
+			// WebKit's default font has no glyph for that character,
+			// rendering as a visible tofu/notdef box right before the word
+			// "Close" instead of an X.
+			content : "Close",
+			onclick : "closeFullScreenImage"
+		}, {
+			kind : "enyo.VFlexBox",
+			flex : 1,
+			pack : "center",
+			align : "center",
+			components : [ {
+				name : "fullScreenImg",
+				kind : "Image",
+				className : "articleFullScreenImg"
+			}, {
+				name : "fullScreenCaption",
+				className : "articleFullScreenCaption"
+			} ]
+		} ]
+	}, {
 		name : "getArticleHtml",
 		kind : "PalmService",
 		service : "palm://com.mlb.atbat2011.service/",
@@ -78,11 +117,16 @@ enyo.kind({
 	} ],
 
 	currentUrl : null,
+	currentImageUrl : null,
+	currentImageCaption : "",
 
 	show : function() {
 		this.$.readerHeader.$.title.setContent(this.title);
 		this.currentUrl = this.params.url;
+		this.currentImageUrl = null;
+		this.currentImageCaption = "";
 		this.$.readerContent.setContent("");
+		this.$.fullScreenOverlay.hide(); // reset -- a prior article's zoomed image shouldn't carry over
 		main.showMiddleSpinner();
 		SportsLogger.log("ArticleReader", "fetching " + this.currentUrl);
 		this.$.getArticleHtml.call({ url : this.currentUrl, method : "GET", followRedirects : true });
@@ -106,9 +150,57 @@ enyo.kind({
 			this.showNoPreview();
 			return;
 		}
+		// No title div here -- this.$.header (mlb.GenericWebViewHeader)
+		// already shows it at the top of the pane (see show() above,
+		// this.$.header.$.title.setContent(this.title)), so a second copy
+		// in the body was pure duplication. extracted.title is still used
+		// on the "no preview" fallback path (showNoPreview), unaffected.
 		var html = "";
-		if (extracted.title) {
-			html += '<div class="articleTitle">' + enyo.string.escapeHtml(extracted.title) + "</div>";
+		// Featured/hero image (lib/parsers/ArticleExtract.js's own
+		// og:image/twitter:image lookup -- Readability's extraction never
+		// surfaces this itself, since it only pulls the article body, not
+		// header/hero markup). Floated (see css/NewsView.css's
+		// .articleFeaturedImage) so body text wraps to its left, then
+		// continues below once the image's height clears.
+		//
+		// Rendered as a fixed-aspect-ratio background-image DIV, not a plain
+		// <img> -- every article's source photo has its own native
+		// dimensions, and the goal (per direct user feedback) is every
+		// article's thumbnail rendering at the SAME dimensions regardless.
+		// background-size:cover crops to fill a fixed 1:1 box (the aspect
+		// ratio of a real reference article's og:image, confirmed live via
+		// ESPN's own og:image:width/height meta tags: 500x500) instead of
+		// each thumbnail being a different height depending on its own
+		// photo's aspect ratio -- this old WebKit's <img> has no object-fit
+		// support to do the equivalent crop directly on an <img> tag.
+		//
+		// Wrapped in an <a> with a fixed, no-payload "abt-fullscreen-image:"
+		// URL so tapping it routes through enyo.HtmlContent's existing
+		// onLinkClick -> readerLinkClick interception (see below) instead of
+		// needing a separate tap-detection mechanism for non-link content.
+		//
+		// The actual image URL/caption are NOT encoded into the href itself
+		// (an earlier version tried that, joining them with a "|" separator)
+		// -- confirmed live that tapping it opened the full-screen overlay
+		// correctly (proving onLinkClick/readerLinkClick fire fine) but the
+		// image never loaded, most likely this old WebKit's href-normalizing
+		// getter mangling a raw "|" (not a valid URI character) into %7C
+		// before readerLinkClick ever saw the string, breaking the split("|")
+		// unpacking. Stashed on `this` instead (currentImageUrl/
+		// currentImageCaption, set here, read back in showFullScreenImage)
+		// -- there's only ever one featured image per article anyway, so
+		// there was never a real need to round-trip it through the href
+		// string at all.
+		if (extracted.imageUrl) {
+			this.currentImageUrl = extracted.imageUrl;
+			this.currentImageCaption = extracted.imageCaption || "";
+			var safeImgUrl = extracted.imageUrl.replace(/"/g, "%22").replace(/'/g, "%27");
+			html += '<a class="articleFeaturedImageLink" href="abt-fullscreen-image:">' +
+				'<div class="articleFeaturedImage" style="background-image:url(&quot;' +
+				enyo.string.escapeHtml(safeImgUrl) + '&quot;)"></div></a>';
+			if (extracted.imageCaption) {
+				html += '<div class="articleFeaturedImageCaption">' + enyo.string.escapeHtml(extracted.imageCaption) + '</div>';
+			}
 		}
 		if (extracted.byline) {
 			html += '<div class="articleByLine">' + enyo.string.escapeHtml(extracted.byline) + "</div>";
@@ -139,10 +231,31 @@ enyo.kind({
 	// letting it navigate this control itself) -- same handler for both,
 	// since the desired behavior is identical either way.
 	readerLinkClick : function(inSender, inUrl) {
+		if (typeof inUrl === "string" && inUrl.indexOf("abt-fullscreen-image:") === 0) {
+			this.showFullScreenImage();
+			return;
+		}
 		SportsLogger.log("ArticleReader", "opening in system default browser: " + inUrl);
 		this.$.openInBrowserCmd.call({ target : inUrl });
 	},
 	openInBrowserFailed : function(inSender, inResponse) {
 		SportsLogger.log("ArticleReader", "openInBrowser failed: " + JSON.stringify(inResponse).substring(0, 300));
+	},
+
+	// Full image, uncropped (unlike the fixed-ratio thumbnail) -- max-width/
+	// max-height:100% on a real <img> (see .articleFullScreenImg) is enough
+	// to fit it within the overlay without cutting anything off, no
+	// object-fit/cover needed here since nothing is being cropped. Reads
+	// currentImageUrl/currentImageCaption (set in gotArticleHtml) rather
+	// than taking them as params -- see that function's own comment for why.
+	showFullScreenImage : function() {
+		SportsLogger.log("ArticleReader", "showFullScreenImage url=" + this.currentImageUrl);
+		this.$.fullScreenImg.setSrc(this.currentImageUrl || "");
+		this.$.fullScreenCaption.setContent(this.currentImageCaption || "");
+		this.$.fullScreenCaption.setShowing(!!this.currentImageCaption);
+		this.$.fullScreenOverlay.show();
+	},
+	closeFullScreenImage : function() {
+		this.$.fullScreenOverlay.hide();
 	}
 });

@@ -9,7 +9,11 @@ div.tabButton div.enyo-button-icon-text{
    popup -- that popup left team names truncated with no real fix available
    (60px isn't enough for "St. Louis Cardinals" at any font size), hence the
    much wider columns below now that there's real room to work with. */
+/* -webkit-border-image:none -- see css/ScoreboardView.css's .prevButton/
+   .nextButton for why (CustomButton's own theme chrome fights a plain
+   border-radius, worst at the bottom corners). */
 .gamedayBackButton {
+	-webkit-border-image: none !important;
 	width: 140px;
 	height: 20px;
 	color: #ccc;
@@ -92,14 +96,34 @@ div.tabButton div.enyo-button-icon-text{
 .linescoreTotalCell {
 	font-weight: bold;
 }
+/* ABS challenges-remaining column ("ABS Left" header + each team's
+   remaining count) -- wider than the other 30px total cells (R/H/E) since
+   "ABS Left" itself doesn't fit that width; table-layout:fixed still
+   respects this per-cell override even with the rest of the table sized
+   off narrower columns. Deliberately no font-size override here (an
+   earlier version had one, smaller than the innings/R/H/E cells) -- text
+   size should match those columns exactly, inherited from .linescoreCell/
+   .linescoreHeaderRow same as every other column. */
+.linescoreAbsCell {
+	width: 60px;
+}
 .linescoreSituation {
+	/* display:inline-block (not the plain block it used to be) -- .gamedayLinescore
+	   itself is flex:1 in topBar (stretches wide to fill available space),
+	   but .linescoreTable deliberately isn't width:100% (sized to its own
+	   columns, sits flush left -- see that rule's own comment). A plain
+	   block .linescoreSituation stretched to match .gamedayLinescore's
+	   full flex-allocated width instead, so its border-top ran well past
+	   the table's own right edge. inline-block shrinks this to its own
+	   text content's width instead, same "flush left, sized to content"
+	   behavior the table already has. */
+	display: inline-block;
 	clear: both;
 	margin-top: 6px;
 	padding-top: 6px;
 	border-top: 1px solid #efefe6;
 	font-size: 0.85em;
 	color: #555;
-	text-align: center;
 }
 .gamedayNoGame {
 	margin: 100px auto;
@@ -194,7 +218,10 @@ div.tabButton div.enyo-button-icon-text{
    cosmetic) thing this class does. */
 .gamedayPlayerCardReversed {
 	position: absolute;
-	right: -35px; /* was -30px, -20px, -10px, 0 -- moved another 5px right per request */
+	right: -15px; /* was -35px (before that: -30px, -20px, -10px, 0) -- moved
+	                 20px back LEFT per direct feedback: the headshot at this
+	                 edge was getting cut off by the next-batter/play-by-play
+	                 area to its right. */
 	top: 50%;
 	-webkit-transform: translateY(-50%);
 	transform: translateY(-50%);
@@ -245,7 +272,7 @@ div.tabButton div.enyo-button-icon-text{
    directly under the bases now (see .gamedayBasesOutsGroup), not beside
    them. */
 .gamedayOuts {
-	margin-left: 10px; /* gap from linescore -- outs is now topBar's middle element, bases (.gamedayDiamond) to its right */
+	margin-left: 10px; /* gap from linescore -- outs is topBar's middle element, bases (.gamedayDiamond) to its right */
 }
 .gamedayOut {
 	width: 16px;
@@ -512,4 +539,46 @@ div.tabButton div.enyo-button-icon-text{
 .gamedayPlayDescription {
 	font-size: 0.9em;
 	color: #333;
+}
+
+/* mlb.GamedayPlayItem's challengeLink -- only shown for a challenged play
+   (play.isAbsChallenge, see lib/parsers/GamedayParser.js). Same blue as the
+   rest of the app's tappable link text (css/NewsView.css's
+   .articleReaderScroller .fullArticleView .articleBody a) plus an underline
+   and an arrow glyph, since a plain colored line of text inside a scrolling
+   list otherwise gives no hint it's tappable. gamedayPlayItemChallenged adds
+   a faint highlight to the whole row so a challenged play stands out even
+   before reading it. */
+.gamedayPlayItemChallenged {
+	background-color: #FFF8E1;
+}
+.gamedayPlayChallengeLink {
+	margin-top: 4px;
+	font-size: 0.85em;
+	font-weight: bold;
+	color: #00529C;
+	text-decoration: underline;
+}
+
+/* mlb.GamedayPlayItem's scoringLine -- per direct user feedback, always
+   shown for any play with at least one real scoring runner (see
+   lib/parsers/GamedayParser.js's parsePlays), independent of whether the
+   play's own free-text description happens to mention it, since some
+   scoring plays' description text doesn't name the runner at all. The
+   whole row gets bolded (not just this line) and a faint green highlight,
+   same "highlight + accent line" pattern as .gamedayPlayItemChallenged
+   above, but green (matching .pitchBall's green elsewhere in this view)
+   instead of that one's yellow, so the two states read as visually
+   distinct at a glance. */
+.gamedayPlayItemScored {
+	background-color: #E9F7EC;
+}
+.gamedayPlayItemScored .gamedayPlayDescription {
+	font-weight: bold;
+}
+.gamedayPlayScoringLine {
+	margin-top: 4px;
+	font-size: 0.85em;
+	font-weight: bold;
+	color: #2e7d32;
 }

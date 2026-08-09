@@ -20,6 +20,18 @@ var localExtras = {
 	          {
 	        	  "title": "ABS Stats",
 	        	  "view":"AbsStats"
+	          },
+	          {
+	        	  "title": "Teams",
+	        	  "view":"Teams"
+	          },
+	          {
+	        	  "title": "Videos",
+	        	  "view":"Videos"
+	          },
+	          {
+	        	  "title": "Schedule",
+	        	  "view":"Schedule"
 	          }
 	          ]
 };

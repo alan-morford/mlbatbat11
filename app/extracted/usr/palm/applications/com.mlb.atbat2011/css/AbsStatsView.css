@@ -1,0 +1,94 @@
+/* mlb.AbsStatsView (views/AbsStatsView.js) -- ABS scoreboard / game stats
+   2-pane drill-down. */
+
+.absGameStatsScroller {
+	background-color: #fff;
+}
+
+/* Scoped to ONLY mlb.AbsScoreboard's own game grid (via the
+   "absScoreboardScroller" className on its Scroller, views/AbsStatsView.js)
+   -- NOT a change to .scoreboardGamesContainer's own base rule in
+   css/ScoreboardView.css, which is back to exactly what it was before
+   today and must stay that way (per direct user correction: Scoreboard's
+   tile position was already correct and should never have been touched).
+   Per direct user report, ABS Stats' tiles sit visibly further left than
+   Scoreboard's own -- both views share the identical tile CSS
+   (mlb.ScoreboardGameBox), so the difference has to come from something
+   in the two views' surrounding container geometry (AbsStatsView's grid
+   lives inside a nested SlidingPane pane, Scoreboard's doesn't), not the
+   tile styling itself. This padding-left is a best-effort starting value
+   (not screenshot-measured) to visually close that gap -- flagged as the
+   first thing to tune if it doesn't land exactly right. */
+.absScoreboardScroller .scoreboardGamesContainer {
+	padding-left: 20px;
+}
+
+/* Each challenge's row: image column | divider line | text column. CSS
+   table (same technique as views/GamedayLinescore.js's scoreTable) rather
+   than floats -- keeps every row's image aligned in one consistent
+   left-hand column instead of each one floating independently per-row. */
+.challengeRow {
+	display: table;
+	table-layout: fixed;
+	width: 100%;
+	margin-bottom: 15px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid #efefe6;
+}
+.challengeImageCell {
+	display: table-cell;
+	width: 110px;
+	vertical-align: top;
+}
+/* The dividing line itself -- a 1px-wide table cell with just a
+   background color reads as a solid vertical rule at full row height,
+   simpler than a border on an adjacent cell (which wouldn't span the
+   image cell's own height if the two cells end up different heights). */
+.challengeDivider {
+	display: table-cell;
+	width: 1px;
+	background-color: #efefe6;
+}
+.challengeTextCell {
+	display: table-cell;
+	vertical-align: top;
+	padding-left: 10px;
+	font-size: 95%;
+}
+
+/* Plate-view diagram (mlb.AbsGameStats.buildPitchLocationHtml) -- sits
+   inside .challengeImageCell above. */
+.pitchLocationBox {
+	position: relative;
+	width: 100px;
+	height: 120px;
+	background-color: #eef0fa;
+	border: 1px solid #99a;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+.pitchStrikeZone {
+	position: absolute;
+	border: 2px solid #556;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+.pitchDot {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	margin-left: -5px;
+	margin-top: -5px;
+	-webkit-border-radius: 5px;
+	border-radius: 5px;
+	background-color: #c00; /* fallback only -- every real pitch gets .pitchDotBall or .pitchDotStrike below */
+}
+/* Same color values as css/GamedayView.css's .pitchBall/.pitchStrike --
+   can't share the CSS rule directly (different view), so duplicated here
+   deliberately to stay in sync with "match gameday" intent. */
+.pitchDotBall {
+	background-color: #4a9e4a;
+}
+.pitchDotStrike {
+	background-color: #c0392b;
+}

@@ -266,7 +266,22 @@ enyo.kind( {
 	// across teams like the old RSS-based flow did.
 	getArticles : function(team) {
 		this.currentTeam = team;
-		main.showMiddleSpinner();
+		// `main` (index.html's `var main = new mlb.Main();`) isn't assigned
+		// until that whole constructor call returns -- confirmed live
+		// (device error log, 2026-08-07) that this method can run BEFORE
+		// that, throwing "Cannot call method 'showMiddleSpinner' of
+		// undefined" and taking the entire app's boot down with it (a
+		// white-screen-at-launch symptom). Root trigger looks like
+		// windowActivated -> refresh() -> here, which can fire from
+		// webOS's own native window-activate event -- a genuine race
+		// against this app's own synchronous `new mlb.Main()` construction
+		// still finishing, not something this code can fully prevent from
+		// the app side. Guarding every `main.*` call in this trio instead
+		// of chasing the race itself -- worst case with `main` still
+		// unready, the spinner show/hide just no-ops for that one call.
+		if (typeof main !== "undefined" && main) {
+			main.showMiddleSpinner();
+		}
 		this.$.getNews.urlParams = {
 			"team" : (team && team.espnSlug) ? team.espnSlug : "",
 			"limit" : 10
@@ -282,7 +297,9 @@ enyo.kind( {
 	// shape: { returnValue, status, json, raw }, not a raw XHR/WebService
 	// response -- see MLBAudioService.js's httpRequest for the contract.
 	gotNews : function(inSender, inResponse) {
-		main.hideMiddleSpinner();
+		if (typeof main !== "undefined" && main) {
+			main.hideMiddleSpinner();
+		}
 		var status = inResponse && inResponse.status;
 		var isSuccess = status === 0 || (status >= 200 && status < 300);
 		if (!isSuccess || !inResponse.json) {
@@ -304,7 +321,9 @@ enyo.kind( {
 		this.$.newsList.refresh();
 	},
 	newsFailed : function(inSender, inResponse) {
-		main.hideMiddleSpinner();
+		if (typeof main !== "undefined" && main) {
+			main.hideMiddleSpinner();
+		}
 		SportsLogger.log("News", "newsFailed: " + NewsDebug.safeStringify(inResponse));
 		this.articles = [];
 		this.$.newsList.refresh();

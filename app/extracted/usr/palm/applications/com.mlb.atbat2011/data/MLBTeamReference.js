@@ -6,8 +6,13 @@
 // project's CLAUDE.md) and cross-checked against
 // https://a.espncdn.com/i/teamlogos/mlb/500/{espnSlug}.png for all 30 teams --
 // espnSlug matches the lowercased Stats API abbreviation for every team
-// except Arizona, hand-overridden below (Stats API's own "AZ" 404s on ESPN's
-// CDN; ESPN uses "ari"). clubProps.js is left in place, still used by
+// except two hand-overridden below: Arizona (Stats API's own "AZ" 404s on
+// ESPN's CDN; ESPN uses "ari") and the White Sox (Stats API's "CWS" isn't
+// recognized by ESPN's news endpoint at all -- confirmed live 2026-08-08,
+// team=cws returns a flat HTTP 400, not just an empty/wrong result, which
+// is what silently showed as "no articles" in the News tab; ESPN's own
+// team list, site.api.espn.com/.../mlb/teams, confirms its real
+// abbreviation is "CHW"). clubProps.js is left in place, still used by
 // lib/bam.MasterScoreboard.js's dead code path.
 var MLBTeamReference = {};
 
@@ -18,7 +23,7 @@ MLBTeamReference.teams = [
 	{ id: 110, name: "Baltimore Orioles", abbreviation: "BAL", espnSlug: "bal", location: "Baltimore", nickname: "Orioles" },
 	{ id: 111, name: "Boston Red Sox", abbreviation: "BOS", espnSlug: "bos", location: "Boston", nickname: "Red Sox" },
 	{ id: 112, name: "Chicago Cubs", abbreviation: "CHC", espnSlug: "chc", location: "Chicago", nickname: "Cubs" },
-	{ id: 145, name: "Chicago White Sox", abbreviation: "CWS", espnSlug: "cws", location: "Chicago", nickname: "White Sox" },
+	{ id: 145, name: "Chicago White Sox", abbreviation: "CWS", espnSlug: "chw", location: "Chicago", nickname: "White Sox" },
 	{ id: 113, name: "Cincinnati Reds", abbreviation: "CIN", espnSlug: "cin", location: "Cincinnati", nickname: "Reds" },
 	{ id: 114, name: "Cleveland Guardians", abbreviation: "CLE", espnSlug: "cle", location: "Cleveland", nickname: "Guardians" },
 	{ id: 115, name: "Colorado Rockies", abbreviation: "COL", espnSlug: "col", location: "Colorado", nickname: "Rockies" },

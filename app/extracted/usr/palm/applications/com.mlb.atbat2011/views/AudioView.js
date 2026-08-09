@@ -85,7 +85,16 @@ enyo
 				// on-device (same caveat as LOGIN_POPUP_HEIGHT below, which
 				// was original to this file already).
 				COMPACT_HEIGHT : 175,
-				LOGIN_POPUP_HEIGHT : 300,
+				// Reduced from 300 -- per direct user feedback (screenshot),
+				// loginBox's actual content (title/error/2 inputs/remember-me
+				// row/button row + padding) didn't come close to filling
+				// 300px, leaving a visibly tall popup with empty space below
+				// the buttons even after loginBox itself was made flex:1 (see
+				// that component's own comment) to fix the two-tone color
+				// gap. Still an estimate, not pixel-measured against a real
+				// device -- expect a follow-up tuning pass once seen
+				// on-device.
+				LOGIN_POPUP_HEIGHT : 250,
 				ROW_HEIGHT : 62, // mlb.AudioItem's own rendered height: 40px content + 10px top/bottom padding + 1px top/bottom border -- see updateMoreGamesHint
 				// MLB Stats API's abstractGameState stays "Preview" for a
 				// game's entire day up until first pitch, with no field
@@ -230,6 +239,17 @@ enyo
 						name : "loginBox",
 						kind : enyo.VFlexBox,
 						showing : false,
+						// flex:1 -- per direct user feedback (screenshot),
+						// without this loginBox only took up its own content
+						// height, leaving a visible gap of mlb.AudioView's
+						// own lighter background (#2B2B2A) between the
+						// bottom of the login form and the popup's actual
+						// (taller) declared LOGIN_POPUP_HEIGHT -- looked like
+						// an unused thick grey bar. Filling the whole popup
+						// with loginBox's own darker background (#1c1c1b)
+						// removes that gap regardless of exactly how tall
+						// LOGIN_POPUP_HEIGHT is tuned to.
+						flex : 1,
 						style : "padding: 15px 20px; background-color:#1c1c1b;",
 						components : [
 							{
@@ -245,6 +265,7 @@ enyo
 							{
 								name : "usernameInput",
 								kind : "Input",
+								className : "mlbLoginInputBox",
 								hint : "MLB.com username",
 								autoCapitalize : "lowercase",
 								autocorrect : false,
@@ -255,22 +276,84 @@ enyo
 							{
 								name : "passwordInput",
 								kind : "PasswordInput",
+								className : "mlbLoginInputBox",
 								hint : "Password",
 								inputClassName : "mlbLoginInput",
 								style : "width:100%; margin-bottom:8px;"
 							},
 							{
-								// CustomButton is explicitly "a button without
-								// any visual treatment" per its own Enyo 1.0
-								// framework doc comment -- actionButton above
-								// only looks like a button because it has a
-								// background IMAGE; this one needs real chrome
-								// (color/padding/radius) to read as tappable.
-								kind : "CustomButton",
-								name : "loginSubmitButton",
-								caption : "Log In",
-								onclick : "loginSubmitClick",
-								style : "width:120px; height:36px; margin-top:4px; background-color:#0066cc; color:#fff; font-weight:bold; text-align:center; border-radius:4px;"
+								kind : enyo.HFlexBox,
+								// height matches CheckBox's own native
+								// 31px (Onyx/css/CheckBox.css) -- per direct
+								// user feedback the label text wasn't
+								// vertically centered on the checkbox despite
+								// -webkit-box-align:center here; giving the
+								// row an explicit height matching the
+								// checkbox and the label a matching
+								// line-height centers it by construction
+								// instead of relying on cross-axis align
+								// alone to do it.
+								style : "-webkit-box-align:center; height:31px; margin-bottom:8px;",
+								components : [ {
+									name : "rememberMeCheckbox",
+									kind : "CheckBox"
+								}, {
+									content : "Remember me",
+									style : "color:#ccc; margin-left:6px; line-height:31px;",
+									// Tapping the LABEL text should toggle the
+									// checkbox too, not just the tiny box itself
+									// -- a plain onclick forwarding to the
+									// checkbox's own click handling is the
+									// simplest way to widen that hit target.
+									onclick : "rememberMeLabelClick"
+								} ]
+							},
+							{
+								// Cancel + Log In side by side, centered as a
+								// pair -- per direct user feedback. pack:center
+								// on this row (not e.g. individual margins) so
+								// they stay centered as a unit regardless of
+								// either button's own width.
+								kind : enyo.HFlexBox,
+								pack : "center",
+								style : "margin-top:4px;",
+								components : [ {
+									// Real webOS "negative" (red) button --
+									// same reasoning as loginSubmitButton's own
+									// comment below: kind:"Button" +
+									// .enyo-button-negative is the SAME red
+									// webOS uses for its own native
+									// destructive/cancel actions (confirmed
+									// against the real theme CSS,
+									// palm/themes/Onyx/css/Button.css --
+									// background-color:#be0003, white text).
+									kind : "Button",
+									className : "enyo-button-negative",
+									caption : "Cancel",
+									onclick : "loginCancelClick",
+									style : "width:100px; margin-right:10px;"
+								}, {
+									// Real webOS "affirmative" (green) button --
+									// kind:"Button" (not CustomButton, which is
+									// explicitly "a button without any visual
+									// treatment" per its own Enyo 1.0 framework
+									// doc comment) auto-applies the framework's
+									// own .enyo-button base class (pill shape,
+									// border-image chrome); .enyo-button-affirmative
+									// on top of that is the SAME green webOS uses
+									// for its own native affirmative actions
+									// (confirmed against the real theme CSS,
+									// palm/themes/Onyx/css/Button.css --
+									// background-color:#2aa100, white text), not a
+									// made-up color. No custom inline background
+									// needed anymore; just enough style to size it.
+									kind : "Button",
+									name : "loginSubmitButton",
+									className : "enyo-button-affirmative",
+									caption : "Log In",
+									onclick : "loginSubmitClick",
+									style : "width:100px;"
+								} ]
 							}
 						]
 					},
@@ -408,6 +491,32 @@ enyo
 						name : "broadcastsService",
 						kind : "ScoreboardBroadcastsAPIService",
 						onSuccess : "broadcastsServiceReturn"
+					},
+					// "Remember me" credential storage -- see
+					// com.mlb.atbat2011.service/MLBAudioService.js's
+					// rememberCredentials/getRememberedCredentials/
+					// forgetCredentials for why this lives in the service
+					// (openssl-encrypted, with the key kept only in the
+					// service's own storage) rather than this app's own
+					// localStorage.
+					{
+						name : "rememberCredentialsCmd",
+						kind : "PalmService",
+						service : "palm://com.mlb.atbat2011.service/",
+						method : "rememberCredentials"
+					},
+					{
+						name : "getRememberedCredentialsCmd",
+						kind : "PalmService",
+						service : "palm://com.mlb.atbat2011.service/",
+						method : "getRememberedCredentials",
+						onSuccess : "gotRememberedCredentials"
+					},
+					{
+						name : "forgetCredentialsCmd",
+						kind : "PalmService",
+						service : "palm://com.mlb.atbat2011.service/",
+						method : "forgetCredentials"
 					}
 			],
 			create : function() {
@@ -497,6 +606,28 @@ enyo
 				}
 			},
 
+			// Mirrors resizePopup's own hostView-or-Scoreboard fallback --
+			// the two hosts don't share a close method NAME though
+			// (views/GamedayView.js's mlb.GamedayPane has closeAudioPopup,
+			// views/ScoreboardView.js's mlb.ScoreboardView has hidePopups),
+			// so both are tried.
+			closePopup : function() {
+				var host = this.hostView || Views["Scoreboard"];
+				if (host && host.closeAudioPopup) {
+					host.closeAudioPopup();
+				} else if (host && host.hidePopups) {
+					host.hidePopups();
+				}
+			},
+
+			// Cancel on the login form -- there's no "go back" state to
+			// return to (login is a hard gate on the whole popup, not one
+			// screen among several), so the only sensible action is closing
+			// the popup entirely, same as tapping the scrim behind it.
+			loginCancelClick : function() {
+				this.closePopup();
+			},
+
 			// Gates the whole popup on login: shows only the login form
 			// until MLBAuth has a cached token, then reveals the normal
 			// game/feed list UI (fetching the game list for the first time
@@ -522,6 +653,25 @@ enyo
 					this.$.dateNavBox.hide();
 					this.$.buttonToolbar.hide();
 					this.$.list.hide();
+					// Resize NOW, not just once attemptSilentAuth's callback
+					// fires -- confirmed live this is why the Gameday audio
+					// popup sometimes opened oversized: the access token
+					// lasts about an hour (see this method's own header
+					// comment), so any open after that needs this silent
+					// refresh-token exchange, a real network round-trip with
+					// no fixed latency. Every OTHER path through this method
+					// resizes immediately (showLoggedInUI/showLoginForm both
+					// call resizePopup synchronously), so this was the one
+					// gap where the popup just sat at whatever size it
+					// happened to already be -- its own declared 620px
+					// default, or a stale size left over from this same
+					// singleton view's last use elsewhere (e.g. the full
+					// Scoreboard-hosted popup) -- for however long the
+					// network call took. Sizing to the eventual target now
+					// (matching showLoggedInUI's own compactMode check)
+					// means there's nothing left to visibly jump once the
+					// real content shows.
+					this.resizePopup(this.compactMode ? this.COMPACT_HEIGHT : 620);
 					var _self = this;
 					main.$.audioFlow.attemptSilentAuth(function(success) {
 						if (success) {
@@ -549,16 +699,31 @@ enyo
 					this.$.list.show();
 					this.resizePopup(620);
 				}
-				if (!this.scoreboardFetched) {
+				// Also re-fetch (not just re-use this.games) whenever there's
+				// a pending Gameday auto-select, even if scoreboardFetched is
+				// already true -- confirmed live this is why the Gameday
+				// popup sometimes opened compact but with no channel buttons
+				// at all: this.games could be left over from an EARLIER open
+				// on the same calendar day (a different game, or the same
+				// game before its broadcast was registered yet), and
+				// trySelectPendingGame below only ever gets ONE chance to
+				// match against whatever list it's given -- if that list is
+				// stale and doesn't include this game's feeds, it fails
+				// silently and clears the pending flag, so no later fetch
+				// ever retries it. A fresh fetch is cheap and guarantees
+				// broadcastsServiceReturn's own trySelectPendingGame call
+				// (not this one) is what actually finds it.
+				if (!this.scoreboardFetched || this.autoSelectGamePk) {
 					this.scoreboardFetched = true;
 					this.updateDateLabel();
 					this.fetchScoreboard();
 				}
 				else {
 					// Games for this date are already loaded from a prior
-					// open -- still need to honor a pending Gameday
-					// auto-select, since broadcastsServiceReturn (the other
-					// place this fires) won't run again without a fetch.
+					// open, and there's no pending auto-select to worry about
+					// being stale for -- still worth re-checking in case a
+					// manual date-nav interaction left something pending
+					// some other way.
 					this.trySelectPendingGame();
 				}
 			},
@@ -570,6 +735,29 @@ enyo
 				this.$.list.hide();
 				this.$.loginError.setContent("");
 				this.resizePopup(this.LOGIN_POPUP_HEIGHT);
+				// Pre-fill from whatever's remembered, if anything -- every
+				// time the login form shows, not just the first, since a
+				// LATER login (different credentials, or unchecking
+				// remember me) can change what's stored between one show
+				// and the next.
+				this.$.getRememberedCredentialsCmd.call();
+			},
+
+			gotRememberedCredentials : function(inSender, inResponse) {
+				if (!inResponse || !inResponse.returnValue || !inResponse.found) {
+					return;
+				}
+				this.$.usernameInput.setValue(inResponse.username || "");
+				this.$.passwordInput.setValue(inResponse.password || "");
+				// setChecked (programmatic) deliberately does NOT fire
+				// CheckBox's own onChange -- see enyo.CheckBox's own doc
+				// comment -- so this can't accidentally trigger anything
+				// else that might be wired to that event later.
+				this.$.rememberMeCheckbox.setChecked(true);
+			},
+
+			rememberMeLabelClick : function() {
+				this.$.rememberMeCheckbox.setChecked(!this.$.rememberMeCheckbox.getChecked());
 			},
 
 			applyFlowMessage : function(message) {
@@ -620,10 +808,21 @@ enyo
 				this.$.loginError.setContent("");
 				this.$.status.setContent("Logging in...");
 
+				var rememberMe = this.$.rememberMeCheckbox.getChecked();
 				var _self = this;
 				main.$.audioFlow.login(username, password, function(success) {
 					_self.$.passwordInput.setValue("");
 					if (success) {
+						// Only store on an actually-successful login --
+						// never persist credentials that just failed.
+						// Checking the box with nothing (or stale/wrong
+						// values) previously remembered and then unchecking
+						// it is the "forget" path.
+						if (rememberMe) {
+							_self.$.rememberCredentialsCmd.call({ username : username, password : password });
+						} else {
+							_self.$.forgetCredentialsCmd.call();
+						}
 						_self.refreshLoginGate();
 					}
 					else {

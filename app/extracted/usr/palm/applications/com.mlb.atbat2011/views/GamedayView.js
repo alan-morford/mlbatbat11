@@ -103,6 +103,10 @@ enyo.kind( {
 			align : "center",
 			showing : false,
 			components : [
+				// ABS challenges-remaining renders as its own column ("ABS
+				// Left") inside mlb.GamedayLinescore's own table, in line
+				// with the away/home run rows -- see that kind's
+				// setLinescore -- not a separate widget here.
 				{ name : "linescore", kind : "mlb.GamedayLinescore", flex : 1 },
 				// Back to top-right of topBar (not centered across the
 				// whole pane) -- outs sits to the bases' left this time,
@@ -132,7 +136,27 @@ enyo.kind( {
 							flex : 0,
 							align : "center",
 							components : [
-								{ name : "batterCard", kind : "mlb.GamedayPlayerCard", label : "Now Batting", statType : "batting" },
+								// NOTE: these two component NAMES describe
+								// POSITION (left slot / right slot), not
+								// which player's data they hold -- per
+								// direct user feedback, the two players'
+								// entire card contents (label/statType/
+								// data) are swapped between positions
+								// below in setGame, while each position
+								// keeps its OWN original visual arrangement
+								// (left: image-then-text, normal flow;
+								// right: text-then-image, right-edge
+								// anchored) -- so "batterCard" (the LEFT,
+								// image-first slot) actually displays
+								// PITCHER info, and "pitcherCard" (the
+								// RIGHT, text-first slot) displays BATTER
+								// info. An earlier attempt instead swapped
+								// image/text order WITHIN each player's own
+								// card while keeping player-to-position
+								// binding fixed -- corrected per feedback:
+								// that wasn't what was wanted, the players
+								// themselves should swap slots entirely.
+								{ name : "batterCard", kind : "mlb.GamedayPlayerCard", label : "Now Pitching", statType : "pitching" },
 								// pitcherCard is position:absolute (see
 								// .gamedayPlayerCardReversed), anchored to
 								// matchupRow's own right edge -- NOT flex
@@ -143,7 +167,7 @@ enyo.kind( {
 								// plain CSS right:0 doesn't depend on
 								// whatever was making flex distribution
 								// misbehave here.
-								{ name : "pitcherCard", kind : "mlb.GamedayPlayerCard", label : "Now Pitching", statType : "pitching", reverse : true }
+								{ name : "pitcherCard", kind : "mlb.GamedayPlayerCard", label : "Now Batting", statType : "batting", reverse : true, imageFirst : false }
 							]
 						},
 						{
@@ -236,7 +260,7 @@ enyo.kind( {
 		this.$.noGame.hide();
 		this.$.topBar.show();
 		this.$.mainColumns.show();
-		this.$.linescore.setLinescore(parsedGame.linescore, parsedGame.awayTeamName, parsedGame.homeTeamName);
+		this.$.linescore.setLinescore(parsedGame.linescore, parsedGame.awayTeamName, parsedGame.homeTeamName, parsedGame.absChallenges);
 		if (parsedGame.linescore) {
 			this.$.diamond.setRunners(parsedGame.linescore.onFirst, parsedGame.linescore.onSecond, parsedGame.linescore.onThird);
 			this.$.outs.setOuts(parsedGame.linescore.outs);
@@ -245,8 +269,12 @@ enyo.kind( {
 		this.$.playByPlay.setPlays(parsedGame.plays);
 
 		var matchup = parsedGame.matchup || {};
-		this.$.batterCard.setPlayer(matchup.batter);
-		this.$.pitcherCard.setPlayer(matchup.pitcher);
+		// $.batterCard/$.pitcherCard are POSITION names (left/right slot),
+		// not player-role names -- see their own config comment above.
+		// batterCard is the left, image-first slot, now labeled "Now
+		// Pitching", so it gets the PITCHER's data, and vice versa.
+		this.$.batterCard.setPlayer(matchup.pitcher);
+		this.$.pitcherCard.setPlayer(matchup.batter);
 		this.setOnDeck(matchup.onDeck);
 		this.updateSilhouette(matchup.batter && matchup.batter.handedness);
 	},
@@ -292,6 +320,13 @@ enyo.kind( {
 		this.$.topBar.hide();
 		this.$.mainColumns.hide();
 		this.$.noGame.show();
+	},
+	// One-hop forward to mlb.GamedayView (this kind's own owner) -- see
+	// mlb.GamedayPlayByPlay.playItemClick, which is the actual originator.
+	challengeTapped : function(play) {
+		if (this.owner && this.owner.forwardChallengeDetail) {
+			this.owner.forwardChallengeDetail(play);
+		}
 	}
 });
 
@@ -449,6 +484,29 @@ enyo.kind( {
 	openAudioPopup : function() {
 		this.$.scrim.show();
 		this.$.audioPopup.openAtCenter();
+		// Compact size up front, right after the FIRST openAtCenter, not
+		// before it -- confirmed live this crashed ("Cannot call method
+		// 'applyStyle' of undefined" on audioChrome) when placed earlier:
+		// same lazy-child-construction behavior as Calendar's DatePicker
+		// (see mlb.AbsScoreboardHeader's own calendarButtonClick comment,
+		// views/AbsStatsView.js) -- this Popup kind doesn't actually
+		// construct its declared children (audioChrome included) until
+		// it's been opened at least once, so resizeAudioPopup's
+		// this.$.audioChrome reference was undefined. audioPopup's own
+		// declared style is a fixed 620px tall (sized for the full
+		// Scoreboard-hosted game list, views/ScoreboardView.js's own
+		// showGameDayAudio), and this popup can also be left at whatever
+		// size a PRIOR open (compact or full) last resized it to, from
+		// either host. Without this, the popup could visibly open at 620px
+		// and only shrink once Views.Audio's own render/login-gate logic
+		// gets around to resizing it -- normally fast enough not to
+		// notice, but genuinely slow (and visible) when a silent token
+		// refresh is needed (see mlb.AudioView.refreshLoginGate). Sizing
+		// to the compact default here means there's nothing to visibly
+		// jump from in the common case, and refreshLoginGate's own resize
+		// calls (compact/login/full) still take over correctly from here
+		// for whichever state actually applies.
+		this.resizeAudioPopup(Views.Audio.COMPACT_HEIGHT);
 
 		var gameDateObj = this.gameDate ? new Date(this.gameDate + "T12:00:00") : new Date();
 		if (!Views.Audio.date || Views.Audio.date.toDateString() != gameDateObj.toDateString()) {
@@ -495,6 +553,199 @@ enyo.kind( {
 		this.$.audioPopup.applyStyle("height", height + "px");
 		this.$.audioChrome.applyStyle("height", (height - 2) + "px");
 		this.$.audioPopup.openAtCenter();
+	},
+
+	// One-hop forward to mlb.GamedayPane (this kind's own owner once
+	// wrapped -- see that kind below) -- the actual originator is
+	// mlb.GamedayPlayByPlay.playItemClick, via mlb.GamedayLive.challengeTapped.
+	// Named differently from mlb.GamedayPane's own showChallengeDetail
+	// (different signature: this one has no gamePk of its own to pass,
+	// mlb.GamedayPane's version needs one) so the two don't read as the same
+	// method at a glance despite both existing on Gameday-related kinds.
+	forwardChallengeDetail : function(play) {
+		if (this.owner && this.owner.showChallengeDetail) {
+			this.owner.showChallengeDetail(this.game, play);
+		}
 	}
 
+});
+
+// ---------------------------------------------------------------------------
+// Outer pane wrapper -- registered as the "Gameday" pane in place of
+// mlb.GamedayView directly (see views/Panels2.js and views/Main.js's Views
+// registry). SlidingPane with 2 panes, same mechanism as
+// mlb.AbsStatsView/mlb.NewsView:
+//   pane 1 (mainPane) -- the entire mlb.GamedayView above, completely
+//                        unchanged internally and nested exactly one level
+//                        deep, matching how mlb.AbsScoreboard/
+//                        mlb.AbsGameStats sit inside mlb.AbsStatsView's own
+//                        panes (views/AbsStatsView.js) -- deliberately NOT
+//                        flattening GamedayView's own Scrim/Popup/PalmService
+//                        children directly into THIS SlidingPane's top
+//                        level: SlidingPane's defaultKind is "SlidingView"
+//                        and its enyo.Pane base class specifically manages
+//                        "view" children differently from plain ones (see
+//                        the framework's containers/SlidingPane.js), so
+//                        keeping GamedayView as ONE single opaque child
+//                        avoids any risk to its own already-tuned Scrim/
+//                        Popup absolute positioning (sized in raw screen
+//                        pixels), which was never exercised living directly
+//                        inside a SlidingPane's own client HFlexBox.
+//   pane 2 (challengePane) -- a tapped challenged play's ABS Stat detail
+//                             (mlb.GamedayChallengeDetail below), reusing
+//                             AbsChallengeFormat's rendering (see
+//                             lib/parsers/AbsChallengeFormat.js).
+// External callers (views/ScoreboardView.js) still call setGame/stopPolling
+// on Views["Gameday"] exactly as before this change -- both simply forward
+// to $.main, the wrapped mlb.GamedayView instance.
+// ---------------------------------------------------------------------------
+enyo.kind({
+	name : "mlb.GamedayPane",
+	kind : "SlidingPane",
+	flex : 1,
+	multiViewMinWidth : 0,
+	components : [ {
+		name : "mainPane",
+		components : [ { name : "main", kind : "mlb.GamedayView", flex : 1 } ]
+	}, {
+		name : "challengePane",
+		components : [ { name : "challengeDetail", kind : "mlb.GamedayChallengeDetail", flex : 1 } ]
+	} ],
+
+	// Always reset back to the live game view on a fresh setGame -- same
+	// "always reset to the entry pane" spec as mlb.AbsStatsView.show/
+	// mlb.NewsView.show -- before forwarding to the wrapped view exactly as
+	// external callers already expect (views/ScoreboardView.js calls this
+	// the same way it always has).
+	setGame : function(gamePk, state) {
+		this.$.mainPane.select();
+		this.$.main.setGame(gamePk, state);
+	},
+	stopPolling : function() {
+		this.$.main.stopPolling();
+	},
+
+	showChallengeDetail : function(gamePk, play) {
+		this.$.challengeDetail.loadChallenge(gamePk, play);
+		this.$.challengePane.select();
+	}
+});
+
+// ---------------------------------------------------------------------------
+// Pane 2 above: single-challenge detail, reached only by tapping a
+// challenged play in mlb.GamedayPlayByPlay's list. Reuses
+// AbsChallengeFormat.buildChallengeRowHtml (lib/parsers/AbsChallengeFormat.js)
+// for identical rendering to mlb.AbsGameStats' own per-game challenge list
+// (views/AbsStatsView.js), fetching the SAME full-game Baseball Savant
+// challenge list via getAbsChallengeEvents (MLBAudioService.js) and then
+// picking out just the one challenge whose ab_number matches this play's
+// atBatIndex+1 -- see lib/parsers/GamedayParser.js's parsePlays for why
+// that's the right mapping (confirmed live against real data).
+// ---------------------------------------------------------------------------
+enyo.kind({
+	name : "mlb.GamedayChallengeDetail",
+	kind : "enyo.VFlexBox",
+	flex : 1,
+	components : [ {
+		name : "header",
+		kind : "mlb.GenericWebViewHeader",
+		flex : 0
+	}, {
+		name : "scroller",
+		kind : "enyo.Scroller",
+		flex : 1,
+		className : "absGameStatsScroller",
+		components : [ {
+			name : "content",
+			kind : "enyo.HtmlContent",
+			className : "fullArticleView"
+		} ]
+	}, {
+		kind : "Toolbar",
+		height : "40px",
+		flex : 0,
+		components : [ {
+			kind : "GrabButton"
+		} ]
+	}, {
+		name : "getChallenges",
+		kind : "PalmService",
+		service : "palm://com.mlb.atbat2011.service/",
+		method : "getAbsChallengeEvents",
+		onSuccess : "gotChallenges",
+		onFailure : "challengesFailed"
+	} ],
+
+	targetAtBatIndex : null,
+	watchdogTimer : null,
+
+	// isRetry: internal -- see views/AbsStatsView.js's mlb.AbsGameStats.
+	// loadGame for the full on-device-confirmed reasoning (this device's
+	// PalmServiceBridge occasionally drops a request with no trace at all,
+	// not even a normal onFailure) -- same fix here: one silent automatic
+	// retry before actually giving up.
+	loadChallenge : function(gamePk, play, isRetry) {
+		this.targetAtBatIndex = play && play.atBatIndex;
+		if (!isRetry) {
+			this.$.header.$.title.setContent("Challenge Detail");
+			this.$.content.setContent('<div class="articleTitle">Loading...</div>');
+			main.showMiddleSpinner();
+		}
+		if (this.watchdogTimer) {
+			clearTimeout(this.watchdogTimer);
+		}
+		var self = this;
+		this.watchdogTimer = setTimeout(function() {
+			if (!isRetry) {
+				SportsLogger.log("GamedayChallengeDetail", "watchdog: retrying once for gamePk=" + gamePk);
+				self.watchdogTimer = null;
+				self.loadChallenge(gamePk, play, true);
+				return;
+			}
+			self.watchdogTimer = null;
+			self.$.content.setContent(
+				'<div class="articleTitle">Challenge Detail</div>' +
+				'<div class="articleBody">Couldn\'t load challenge detail.</div>'
+			);
+			main.hideMiddleSpinner();
+		}, 15000);
+		this.$.getChallenges.call({ gamePk : gamePk });
+	},
+
+	gotChallenges : function(inSender, inResponse) {
+		if (this.watchdogTimer) {
+			clearTimeout(this.watchdogTimer);
+			this.watchdogTimer = null;
+		}
+		main.hideMiddleSpinner();
+		var challenges = (inResponse && inResponse.returnValue && inResponse.challenges) || [];
+		var targetAbNumber = (typeof this.targetAtBatIndex === "number") ? this.targetAtBatIndex + 1 : null;
+		var match = null;
+		for (var i = 0; i < challenges.length; i++) {
+			if (challenges[i].ab_number === targetAbNumber) {
+				match = challenges[i];
+				break;
+			}
+		}
+		if (!match) {
+			this.$.content.setContent(
+				'<div class="articleTitle">Challenge Detail</div>' +
+				'<div class="articleBody">Detail not available yet -- try again in a moment.</div>'
+			);
+			return;
+		}
+		this.$.content.setContent(AbsChallengeFormat.buildChallengeRowHtml(match));
+	},
+
+	challengesFailed : function() {
+		if (this.watchdogTimer) {
+			clearTimeout(this.watchdogTimer);
+			this.watchdogTimer = null;
+		}
+		main.hideMiddleSpinner();
+		this.$.content.setContent(
+			'<div class="articleTitle">Challenge Detail</div>' +
+			'<div class="articleBody">Couldn\'t load challenge detail.</div>'
+		);
+	}
 });

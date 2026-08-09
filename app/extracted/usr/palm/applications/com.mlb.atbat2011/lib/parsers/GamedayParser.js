@@ -62,13 +62,65 @@ GamedayParser.parsePlays = function (plays) {
 		var about = play.about || {};
 		var result = play.result || {};
 
+		// about.hasReview is NOT reliable for this -- confirmed live
+		// (2026-08) against a real completed game with 2 real ABS
+		// challenges recorded in gameData.absChallenges: every play's
+		// about.hasReview came back false, even for the two at-bats that
+		// really were challenged. The actual signal only lives on the
+		// individual pitch: playEvents[].details.hasReview is true (with a
+		// populated playEvents[].reviewDetails: {isOverturned,
+		// challengeTeamId, player}) on the SPECIFIC pitch that got
+		// challenged within that at-bat, regardless of what the play-level
+		// about.hasReview says.
+		var isAbsChallenge = false;
+		var rawEvents = play.playEvents || [];
+		for (var j = 0; j < rawEvents.length; j++) {
+			if (rawEvents[j].details && rawEvents[j].details.hasReview) {
+				isAbsChallenge = true;
+				break;
+			}
+		}
+
+		// Per direct user feedback: some scoring plays' own free-text
+		// result.description doesn't actually name the runner who scored
+		// (e.g. a wild pitch, passed ball, balk, or fielder's choice can
+		// read as just the batter's own outcome, with the run itself
+		// unmentioned) -- confirmed by inspecting real games' description
+		// text against their own runners[] data. play.runners[] is the
+		// authoritative source regardless: each entry with
+		// details.isScoringEvent:true is one runner who scored on this
+		// play, named in details.runner.fullName. Built here (not left to
+		// the view) so both the "did anyone score" check and "who" come
+		// from the same real data instead of scanning description text.
+		var scoringRunners = [];
+		var rawRunners = play.runners || [];
+		for (var k = 0; k < rawRunners.length; k++) {
+			var runnerDetails = rawRunners[k].details || {};
+			if (runnerDetails.isScoringEvent && runnerDetails.runner && runnerDetails.runner.fullName) {
+				if (scoringRunners.indexOf(runnerDetails.runner.fullName) === -1) {
+					scoringRunners.push(runnerDetails.runner.fullName);
+				}
+			}
+		}
+
 		parsed.push({
 			inning: about.inning,
 			halfInning: about.halfInning,
 			isScoringPlay: !!about.isScoringPlay,
 			description: result.description || "",
+			scoringRunners: scoringRunners,
 			awayScore: result.awayScore,
-			homeScore: result.homeScore
+			homeScore: result.homeScore,
+			// atBatIndex (0-indexed here) is this play's own identity in
+			// MLB Stats API's numbering. Baseball Savant's per-pitch
+			// getAbsChallengeEvents (MLBAudioService.js) instead numbers
+			// at-bats via its own 1-indexed ab_number -- confirmed live
+			// against the same real game/challenges above that
+			// ab_number === atBatIndex + 1 for both actual challenges, so
+			// that's the mapping mlb.GamedayChallengeDetail (GamedayView.js)
+			// uses to find a tapped play's matching Savant challenge record.
+			atBatIndex: about.atBatIndex,
+			isAbsChallenge: isAbsChallenge
 		});
 	}
 
@@ -207,6 +259,11 @@ GamedayParser.parseGameFeed = function (json) {
 	return {
 		awayTeamName: (teams.away && teams.away.name) || "",
 		homeTeamName: (teams.home && teams.home.name) || "",
+		// Needed for views/GamedayView.js's ABS challenge-remaining team
+		// logos -- same ESPN-CDN abbreviation-to-slug convention as
+		// views/ScoreboardGameBox.js's getLogoUrl.
+		awayTeamAbbr: (teams.away && teams.away.abbreviation) || "",
+		homeTeamAbbr: (teams.home && teams.home.abbreviation) || "",
 		abstractGameState: status.abstractGameState || "",
 		detailedState: status.detailedState || "",
 		// YYYY-MM-DD -- needed to look up this game's radio broadcasts,
@@ -216,6 +273,12 @@ GamedayParser.parseGameFeed = function (json) {
 		linescore: GamedayParser.parseLinescore(liveData.linescore),
 		plays: GamedayParser.parsePlays(liveData.plays),
 		currentAtBat: GamedayParser.parseCurrentAtBatPitches(liveData.plays && liveData.plays.currentPlay),
-		matchup: GamedayParser.parseMatchup(liveData.plays && liveData.plays.currentPlay, liveData.linescore, liveData.boxscore)
+		matchup: GamedayParser.parseMatchup(liveData.plays && liveData.plays.currentPlay, liveData.linescore, liveData.boxscore),
+		// {hasChallenges, away:{usedSuccessful,usedFailed,remaining},
+		// home:{...}} or null -- same field this app's ABS Stats tab uses
+		// (views/AbsStatsView.js), already present in every feed/live
+		// response this view polls every 8s regardless; just wasn't read
+		// out of it before now.
+		absChallenges: gameData.absChallenges || null
 	};
 };

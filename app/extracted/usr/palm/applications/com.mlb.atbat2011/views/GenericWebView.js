@@ -38,7 +38,13 @@ enyo.kind( {
 	flex: 1,
 	components: [
 		{
-			style: "padding-left:20px; padding-top: 15px; width: 100%; height: 100%; color: white; font-weight: bold; font-size:130%; valign:middle",
+			// Centered (was left-aligned) with wrapping allowed (no
+			// white-space:nowrap/overflow:hidden here or inherited, so a
+			// long title naturally wraps to a second line instead of
+			// clipping) -- symmetric padding instead of the old left/top-
+			// only offset, since that was tuned for a single line and
+			// looked off-center once a title could wrap to two.
+			style: "padding:10px 15px; width:100%; -webkit-box-sizing:border-box; box-sizing:border-box; color: white; font-weight: bold; font-size:130%; text-align:center;",
 			name: "title"
 		}
 	]

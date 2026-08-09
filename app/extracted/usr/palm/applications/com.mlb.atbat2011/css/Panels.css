@@ -8,3 +8,28 @@
 .leftNav .clicked {
 	background-color: rgba(0,0,0,0.3);
 }
+
+/* Blocks taps on the left-nav item list -- see views/Panels2.js's
+   leftNavBlocker (a sibling of leftNav, not a child of it) and
+   views/Main.js's setLeftNavBlocked. No position:relative added to
+   leftSlidingView itself as an anchor -- confirmed via the framework's
+   own SlidingView.js source that it positions itself via
+   -webkit-transform (for the slide animation), and a CSS transform on an
+   ancestor already establishes a valid containing block for an
+   absolutely-positioned descendant on its own, same as position:relative
+   would -- no need to add anything there. leftNavBlocker being a direct
+   child of that SAME transformed leftSlidingView (not an overlay
+   reaching in from some other, separately-transformed pane elsewhere) is
+   exactly what sidesteps the stacking-context problem the sibling
+   dailymotion project's own leftPaneBlocker comment describes -- z-index
+   only needs to win within this one shared local stacking context, not
+   against some unrelated transformed ancestor elsewhere in the tree. */
+.leftNavBlocker {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.3);
+	z-index: 10;
+}

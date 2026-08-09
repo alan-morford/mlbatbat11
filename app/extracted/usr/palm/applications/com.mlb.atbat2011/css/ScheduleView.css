@@ -1,0 +1,105 @@
+/* views/ScheduleView.js. Month-nav buttons/label now reuse
+   css/ScoreboardView.css's own .prevButton/.gameDate/.nextButton directly
+   (mlb.ScheduleCalendarHeader copies mlb.ScoreboardHeader's exact DateNav
+   structure) for design consistency with Scoreboard/ABS Stats -- no
+   Schedule-specific button/label classes needed here anymore. */
+
+/* First attempt at this (overflow:hidden alone, flex:1) didn't work --
+   confirmed live via a side-by-side screenshot (2026-08-09) DateNav still
+   rendered ~130px right of where it sits in Scoreboard/ABS Stats.
+   Root cause: with box-flex:1 on BOTH this box and DateNav, old WebKit's
+   -webkit-box model distributes EXTRA space (total width minus the sum of
+   each box's natural/unclipped content width) equally, then ADDS it to
+   each box's own content width -- it does NOT split the total width
+   evenly. overflow:hidden clips what's PAINTED, but this box's "natural"
+   width for that calculation is still the full unclipped team name text.
+   A short "headphone icon" (mlb.ScoreboardHeader's own equivalent box) has
+   a small, fixed natural width, so ITS box ends up much narrower than a
+   variable-length, larger team name's box does here -- pushing DateNav's
+   start position right by the difference.
+   Fix: flex:0 (in views/ScheduleView.js) + an explicit fixed width here,
+   sized to match Scoreboard's own effective first-box width (measured
+   directly off that screenshot: DateNav consistently starts ~277px into
+   the header there) -- NOT flex-computed at all anymore, so it can't vary
+   with team name length. A long name still gets a graceful ellipsis inside
+   that same fixed box, per the .scheduleTeamName rule below (unchanged). */
+.scheduleTeamNameBox {
+	width: 277px;
+	overflow: hidden;
+}
+.scheduleTeamName {
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* Weekday header row -- 7 float:left cells, same 8px-left-margin-per-cell
+   pattern as .scheduleDayCell below (104px visual footprint + 8px margin =
+   112px per column slot, matching that cell's own 1(border)+4(padding)+
+   94(content)+4(padding)+1(border)+8(margin) = 112 exactly) so the labels
+   line up directly over their day columns. padding-top per direct user
+   request (was flush against the header above it). */
+.scheduleWeekdayRow {
+	overflow: hidden;
+	padding-top: 12px;
+}
+.scheduleWeekdayCell {
+	width: 104px;
+	float: left;
+	margin: 0 0 0 8px;
+	text-align: center;
+	font-weight: bold;
+	color: #666;
+	font-size: 0.85em;
+}
+
+/* Month grid -- same float-wrap technique as css/ScoreboardView.css's
+   .scoreboardGamesContainer/css/AbsTeamsView.css's .absTeamGrid (nesting
+   Enyo's flex kinds inside a float grid caused inconsistent row-wrapping on
+   this old WebKit, per those files' own header comments). 7 cells at 104px
+   + 8px left margins: 7*104 + 7*8 = 784px, comfortably under the 824px
+   content width (same safety margin those other grids already use). */
+.scheduleCalendarGrid {
+	overflow: hidden;
+}
+/* width/height are CONTENT box size (94x66), not the visible 104x76 footprint
+   -- this codebase's CSS never uses box-sizing:border-box anywhere else on
+   this old WebKit (see css/GameSummaryView.css's own comment on the same
+   convention), so padding (4px/side) and border (1px/side) are subtracted
+   out here instead: 94 + 2*4 + 2*1 = 104, 66 + 2*4 + 2*1 = 76. */
+.scheduleDayCell {
+	width: 94px;
+	height: 66px;
+	float: left;
+	margin: 8px 0 0 8px;
+	padding: 4px;
+	border: 1px solid #888; /* dark grey grid lines, per direct user request (was a faint #ddd) */
+	-webkit-border-radius: 4px;
+}
+.scheduleDayCellEmpty {
+	border-color: transparent;
+}
+.scheduleDayCellNum {
+	font-weight: bold;
+	font-size: 0.85em;
+	color: #333;
+}
+.scheduleDayCellOpponent {
+	font-size: 0.75em;
+	color: #666;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.scheduleDayCellResult {
+	font-size: 0.75em;
+	font-weight: bold;
+	color: #666;
+}
+.scheduleDayCellWin .scheduleDayCellResult {
+	color: #1a7a1a;
+}
+.scheduleDayCellLoss .scheduleDayCellResult {
+	color: #b02020;
+}

@@ -24,7 +24,16 @@ enyo.kind({
 		]},
 		{ name : "situation", className : "linescoreSituation" }
 	],
-	setLinescore : function(linescore, awayName, homeName) {
+	// absChallenges: parseGameFeed's absChallenges field (see
+	// lib/parsers/GamedayParser.js) -- {hasChallenges, away:{remaining,...},
+	// home:{remaining,...}} or null (no ABS data for this game, e.g. it
+	// hasn't loaded yet or predates the 2026 season). The "ABS Left" column
+	// always renders (a dash when null) rather than being added/removed
+	// dynamically -- keeps the header and both team rows trivially in sync
+	// with each other, which a column that sometimes exists and sometimes
+	// doesn't would risk (CSS table columns have to line up across all
+	// three rows every render).
+	setLinescore : function(linescore, awayName, homeName, absChallenges) {
 		if (!linescore) {
 			return;
 		}
@@ -37,10 +46,13 @@ enyo.kind({
 		this.$.inningsRow.createComponent({ className : "linescoreCell linescoreTotalCell", content : "R" });
 		this.$.inningsRow.createComponent({ className : "linescoreCell linescoreTotalCell", content : "H" });
 		this.$.inningsRow.createComponent({ className : "linescoreCell linescoreTotalCell", content : "E" });
+		this.$.inningsRow.createComponent({ className : "linescoreCell linescoreTotalCell linescoreAbsCell", content : "ABS Left" });
 		this.$.inningsRow.render();
 
-		this.renderTeamRow(this.$.awayRow, awayName, linescore.innings, "away", linescore.awayTotals);
-		this.renderTeamRow(this.$.homeRow, homeName, linescore.innings, "home", linescore.homeTotals);
+		var awayAbsRemaining = (absChallenges && absChallenges.away) ? absChallenges.away.remaining : null;
+		var homeAbsRemaining = (absChallenges && absChallenges.home) ? absChallenges.home.remaining : null;
+		this.renderTeamRow(this.$.awayRow, awayName, linescore.innings, "away", linescore.awayTotals, awayAbsRemaining);
+		this.renderTeamRow(this.$.homeRow, homeName, linescore.innings, "home", linescore.homeTotals, homeAbsRemaining);
 
 		var situation = "";
 		if (linescore.currentInning) {
@@ -49,7 +61,7 @@ enyo.kind({
 		}
 		this.$.situation.setContent(situation);
 	},
-	renderTeamRow : function(container, name, innings, side, totals) {
+	renderTeamRow : function(container, name, innings, side, totals, absRemaining) {
 		container.destroyComponents();
 		container.createComponent({ className : "linescoreLabelCell", content : name });
 		for (var i = 0; i < innings.length; i++) {
@@ -59,6 +71,8 @@ enyo.kind({
 		container.createComponent({ className : "linescoreCell linescoreTotalCell", content : String(totals.runs) });
 		container.createComponent({ className : "linescoreCell linescoreTotalCell", content : String(totals.hits) });
 		container.createComponent({ className : "linescoreCell linescoreTotalCell", content : String(totals.errors) });
+		container.createComponent({ className : "linescoreCell linescoreTotalCell linescoreAbsCell",
+			content : (absRemaining === null || absRemaining === undefined) ? "—" : String(absRemaining) });
 		container.render();
 	}
 });

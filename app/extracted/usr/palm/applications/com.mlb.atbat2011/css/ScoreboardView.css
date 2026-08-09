@@ -1,4 +1,18 @@
+/* -webkit-border-image:none -- CustomButton's own theme CSS applies a
+   default 9-slice PNG chrome behind these buttons, which doesn't respect an
+   arbitrary border-radius (its own slice geometry wins instead), reading as
+   "not quite rounded" specifically at the BOTTOM corners where this rule's
+   separate border-bottom color line sits. Same root cause + same fix as
+   css/AudioView.css's own .mlbLoginInputBox (see that rule's header
+   comment) -- disabling the border-image lets this plain CSS
+   border/background/radius render cleanly instead. Shared by every
+   similarly-shaped rounded-pill button in this app (also reused, unchanged,
+   by mlb.AbsScoreboardHeader/ABS Stats via mlb.ScoreboardHeader) --
+   css/GamedayView.css's .gamedayBackButton, css/GameSummaryView.css's
+   .gameSummaryPlayByPlayButton, and css/ScheduleView.css's
+   .scheduleMonthNavButton all got the identical fix alongside this one. */
 .prevButton, .nextButton{
+	-webkit-border-image: none !important;
 	width  : 36px;
 	height : 20px;
 	color : #ccc;
@@ -34,6 +48,7 @@
 	border-bottom:1px solid #5a5a5a !important;
 }
 .calendar{
+	-webkit-border-image: none !important;
 	width : 26px;
 	height : 25px;
 	margin : 3px 30px 5px 0;
@@ -358,6 +373,17 @@ td.errors {  }
 	font-size: 14px;
 	color: #666;
 }
+/* Reverted back to its ORIGINAL form -- an earlier attempt at fixing
+   ABS Stats' tile alignment edited THIS shared class (used by both
+   Scoreboard and ABS Stats' mlb.ScoreboardGameBox), which broke
+   Scoreboard's own already-correct layout (silently wrapped 3 tiles/row
+   down to 2) for no reason: per direct user feedback, Scoreboard was
+   "perfect" before that edit and should never have been touched --
+   only ABS Stats needed adjusting. See css/AbsStatsView.css's own
+   .absScoreboardScroller .scoreboardGamesContainer rule for the
+   ABS-Stats-SCOPED fix instead, applied via an extra class on that
+   view's own Scroller (views/AbsStatsView.js's mlb.AbsScoreboard) rather
+   than here. */
 .scoreboardGamesContainer {
 	overflow: hidden; /* clearfix -- children are float:left */
 }
@@ -389,6 +415,18 @@ td.errors {  }
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	/* Vertically centers the single line of text against
+	   .scoreboardTeamLogo beside it (24px tall) -- per direct user
+	   feedback the logo and name weren't centered on each other in either
+	   Scoreboard or ABS Stats (same mlb.ScoreboardGameBox/CSS reused by
+	   both, so one fix here covers both). Floats don't participate in
+	   -webkit-box-align (the technique already used for vertically
+	   centering elsewhere in this app, e.g. css/AudioView.css's
+	   .mlbFeedButton), so this uses the OTHER already-established
+	   technique in this codebase instead: match line-height to the
+	   sibling's known fixed height, which centers a single line of text
+	   within that line box. */
+	line-height: 24px;
 }
 .scoreboardTeamScore {
 	float: right;

@@ -56,6 +56,110 @@ ArticleExtract._sanitize = function (root) {
 	}
 };
 
+// Featured/hero image -- per direct user feedback, articles usually carry
+// one via the standard social-share meta tags (og:image, falling back to
+// twitter:image) even though Readability's own extraction never surfaces
+// it: Readability only pulls the ARTICLE BODY, and a featured image
+// typically lives in page <head>/header markup outside that body entirely.
+// Deliberately NOT using doc.querySelector (attribute-selector syntax) --
+// matches this codebase's existing conservative getElementsByTagName +
+// manual attribute-check style elsewhere (e.g. Readability.js's own
+// _getAllNodesWithTag fallback), since querySelector support on this old
+// WebKit was never specifically confirmed the way getElementsByTagName's
+// has been throughout this project.
+ArticleExtract._findFeaturedImageUrl = function (doc) {
+	var metas = doc.getElementsByTagName("meta");
+	var ogImage = null, twitterImage = null;
+	for (var i = 0; i < metas.length; i++) {
+		var m = metas[i];
+		var content = m.getAttribute("content");
+		if (!content) {
+			continue;
+		}
+		var prop = (m.getAttribute("property") || "").toLowerCase();
+		var name = (m.getAttribute("name") || "").toLowerCase();
+		if (prop === "og:image" && !ogImage) {
+			ogImage = content;
+		}
+		if (name === "twitter:image" && !twitterImage) {
+			twitterImage = content;
+		}
+	}
+	var raw = ogImage || twitterImage;
+	if (!raw) {
+		return null;
+	}
+	// Same anchor-element resolution trick as
+	// lib/external/Readability.js's own _fixRelativeUris patch (this old
+	// WebKit has no URL constructor) -- resolves against the <base> tag
+	// extract() already inserts before calling this. og:image is almost
+	// always already absolute in practice, but no reason not to be safe.
+	try {
+		var a = doc.createElement("a");
+		a.href = raw;
+		return a.href;
+	} catch (e) {
+		return raw;
+	}
+};
+
+// Strips the query string/fragment off a URL -- used below to loosely match
+// a body <figure>'s <img> against the featured (og:image) URL even when
+// they're different same-photo CDN variants. Confirmed live this matters:
+// ESPN's own image CDN serves the SAME source photo at many different
+// crop/size "templateId" query params (og:image uses one, e.g.
+// "espn.com.share.1", any copy inline in the article body uses another),
+// so an exact string match against og:image would essentially never hit.
+ArticleExtract._imagePath = function (url) {
+	if (!url) {
+		return "";
+	}
+	return url.split("?")[0].split("#")[0];
+};
+
+// Best-effort caption lookup: find a <figure> in the body whose own <img>
+// is (loosely) the same photo as the featured image, and return its
+// <figcaption> text if present. Deliberately does NOT fall back to "just
+// grab the first figcaption in the document" if no match is found -- an
+// unrelated image's caption would be actively misleading, whereas no
+// caption at all (common -- plenty of articles, especially short wire
+// previews, carry a share image with no in-body figure at all) is a
+// perfectly normal, expected result here.
+ArticleExtract._findFeaturedImageCaption = function (doc, imageUrl) {
+	if (!imageUrl) {
+		return "";
+	}
+	var wantPath = ArticleExtract._imagePath(imageUrl);
+	var figures = doc.getElementsByTagName("figure");
+	for (var i = 0; i < figures.length; i++) {
+		var imgs = figures[i].getElementsByTagName("img");
+		var matched = false;
+		for (var j = 0; j < imgs.length && !matched; j++) {
+			var src = imgs[j].getAttribute("src") || imgs[j].getAttribute("data-src") || "";
+			if (!src) {
+				continue;
+			}
+			var resolved = src;
+			try {
+				var a = doc.createElement("a");
+				a.href = src;
+				resolved = a.href;
+			} catch (e) { /* use the raw src as-is */ }
+			if (ArticleExtract._imagePath(resolved) === wantPath) {
+				matched = true;
+			}
+		}
+		if (matched) {
+			var figcaptions = figures[i].getElementsByTagName("figcaption");
+			if (figcaptions.length) {
+				var text = figcaptions[0].textContent || figcaptions[0].innerText || "";
+				return text.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+			}
+		}
+	}
+	return "";
+};
+
 // Parses an HTML string into a real Document, the old-browser-compatible
 // way. Confirmed live on-device (2026-08-07, via SportsLogger) that this
 // app's real WebKit (webOS 3.0.5, ~2011, AppleWebKit/534.6) returns a falsy
@@ -115,9 +219,12 @@ ArticleExtract._createParsedFrame = function (html) {
 // patch comment for the other half of this (old WebKit has no URL
 // constructor either).
 //
-// Returns {title, byline, content} (content is a sanitized HTML string) on
-// success, or null if extraction failed or the page wasn't article-shaped
-// (Readability's own DEFAULT_CHAR_THRESHOLD -- too little real content).
+// Returns {title, byline, content, imageUrl, imageCaption} (content is a
+// sanitized HTML string, imageUrl is the page's og:image/twitter:image or
+// null, imageCaption is a same-photo <figcaption> match or "" if none was
+// found) on success, or null if extraction failed or the page wasn't
+// article-shaped (Readability's own DEFAULT_CHAR_THRESHOLD -- too little
+// real content).
 ArticleExtract.extract = function (html, articleUrl) {
 	if (!html || !articleUrl) {
 		return null;
@@ -146,6 +253,13 @@ ArticleExtract.extract = function (html, articleUrl) {
 			base.setAttribute("href", articleUrl);
 			doc.head.insertBefore(base, doc.head.firstChild);
 		}
+		// Read BEFORE Readability runs -- _prepDocument strips <style> etc.
+		// from the document but leaves <meta> tags alone either way, so
+		// timing doesn't strictly matter here, but doing it right after the
+		// <base> insertion (needed for this to resolve correctly) keeps the
+		// two related steps next to each other.
+		var featuredImageUrl = ArticleExtract._findFeaturedImageUrl(doc);
+		var featuredImageCaption = ArticleExtract._findFeaturedImageCaption(doc, featuredImageUrl);
 
 		var result;
 		try {
@@ -181,7 +295,9 @@ ArticleExtract.extract = function (html, articleUrl) {
 		return {
 			title : result.title || "",
 			byline : result.byline || "",
-			content : result.content
+			content : result.content,
+			imageUrl : featuredImageUrl,
+			imageCaption : featuredImageCaption
 		};
 	} finally {
 		// Only detach now that Readability is fully done with the document

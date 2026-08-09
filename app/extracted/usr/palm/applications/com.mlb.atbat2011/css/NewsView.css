@@ -90,6 +90,115 @@
 .articleReaderScroller .fullArticleView table {
 	max-width:100%;
 }
+/* Floated (not full-width/display:block) per direct user feedback --
+   byline/body text wraps to its left while the image is tall enough, then
+   continues below once it clears, standard "inline article image" layout
+   instead of a full-width hero banner. The pane itself is only 450px
+   wide (see mlbatbat_news_three_pane), so this stays a modest fraction of
+   that rather than a large fixed pixel size. */
+.articleReaderScroller .fullArticleView .articleFeaturedImageLink {
+	display:block;
+	float:right;
+	width:35%;
+	margin-left:15px;
+	margin-bottom:4px;
+}
+/* Fixed 1:1 aspect ratio (see views/ArticleReaderView.js's own comment --
+   matches a real reference article's og:image:width/height, confirmed live
+   at 500x500) via the width/padding-bottom trick: padding-bottom is always
+   a percentage OF THE ELEMENT'S OWN WIDTH regardless of box-sizing, so a
+   0-height box with padding-bottom:100% is exactly as tall as it is wide,
+   on any browser old enough to run this app -- no CSS aspect-ratio
+   property needed. background-size:cover crops the actual photo (whatever
+   its native dimensions) to fill that fixed box instead of stretching or
+   letterboxing it. */
+.articleReaderScroller .fullArticleView .articleFeaturedImage {
+	width:100%;
+	height:0;
+	padding-bottom:100%;
+	background-size:cover;
+	background-position:center center;
+	background-repeat:no-repeat;
+	border:1px solid #A6A698;
+}
+.articleReaderScroller .fullArticleView .articleFeaturedImageCaption {
+	float:right;
+	width:35%;
+	margin-left:15px;
+	margin-bottom:10px;
+	font-size:80%;
+	color:#777;
+	font-style:italic;
+}
+
+/* Full-screen image viewer overlay (see mlb.ArticleReaderView's
+   fullScreenOverlay). .articleReaderView is the SlidingPane's article
+   READER PANE only (views/NewsView.js's articlePane, ~450px wide, peeking
+   over the article-list pane per this app's 3-pane News layout) -- it does
+   NOT span the app's full 1024x768 card. position:absolute here originally
+   anchored to THAT pane's own box (.articleReaderView set position:relative
+   as the anchor), so "full screen" was actually only ever full-PANE: capped
+   at ~450px wide with the article list still visible/peeking underneath.
+   Per direct user feedback ("Photos are loading when tapped now in news
+   articles but they're not full screen") this needed to actually cover the
+   whole device screen, not just the reader pane. Fixed by switching to
+   position:fixed, which resolves against the viewport (this app's own
+   1024x768 card, confirmed via views/NewsView.js's own "fixed 1024x768-
+   landscape TouchPad layout" comment) regardless of which pane's box this
+   overlay happens to be nested inside -- safe here since nothing in this
+   app's CSS uses -webkit-transform on any ancestor (confirmed via repo-wide
+   grep), which is the one thing that would otherwise hijack position:fixed's
+   containing block back down to a local ancestor on WebKit. */
+.articleReaderView {
+	position:relative;
+}
+.articleFullScreenOverlay {
+	position:fixed;
+	top:0;
+	left:0;
+	right:0;
+	bottom:0;
+	background-color:#000;
+	z-index:10;
+}
+.articleFullScreenClose {
+	color:#fff;
+	padding:12px 15px;
+	font-weight:bold;
+}
+/* Explicit width (not max-width:100% on an unconstrained flex-align:center
+   parent) -- every other kind:"Image" in this app gives it explicit
+   pixel dimensions (see css/GamedayView.css's .gamedayPlayerHeadshot); a
+   percentage size resolved against a -webkit-box align:center parent
+   (whose own width is itself content-driven, not a hard 100%) is a
+   circular case this old WebKit apparently doesn't resolve to anything
+   visible -- confirmed live the image simply never appeared (SportsLogger
+   showed setSrc was in fact called with a valid, correctly-formed URL, so
+   this was never a bad-src issue). That failure was specifically about
+   PERCENTAGE sizing needing to resolve against an ambiguous/content-driven
+   parent width -- max-width/max-height in fixed px units are absolute
+   lengths, no parent resolution involved, so they don't hit the same wall.
+   Now that the overlay itself is viewport-fixed (see
+   .articleFullScreenOverlay above) instead of confined to the ~450px
+   reader pane, raised the cap from a hard 400px to max-width:900px /
+   max-height:620px (leaving headroom under the 1024x768 screen for the
+   close button/caption) with width/height both auto -- standard
+   shrink-to-fit-preserving-aspect-ratio behavior, scales landscape AND
+   portrait photos down proportionally in both dimensions, unlike a fixed
+   width + max-height pairing which would squish a portrait image instead
+   of scaling it down evenly. */
+.articleFullScreenImg {
+	max-width:900px;
+	max-height:620px;
+	width:auto;
+	height:auto;
+}
+.articleFullScreenCaption {
+	color:#fff;
+	text-align:center;
+	padding:10px;
+	font-size:90%;
+}
 .articleReaderScroller .fullArticleView .articleBody a {
 	color:#00529C;
 }

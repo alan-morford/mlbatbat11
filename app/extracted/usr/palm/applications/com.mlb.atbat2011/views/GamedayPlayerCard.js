@@ -22,11 +22,25 @@ enyo.kind({
 	name : "mlb.GamedayPlayerCard",
 	kind : "enyo.HFlexBox",
 	className : "gamedayPlayerCard",
-	align : "center",
+	align : "start", // top-aligned (was "center") -- headshot and stat text now line up at their tops
 	published : {
 		label : "",
 		statType : "batting", // "batting" | "pitching"
-		reverse : false // true = headshot rendered after the info block instead of before
+		// true = apply .gamedayPlayerCardReversed (right-aligned text,
+		// paired with the pitcher card's own position:absolute right-edge
+		// anchor in css/GamedayView.css) -- positioning only, NOT image/
+		// text order (see imageFirst below for that). These used to be the
+		// same flag; split apart so either can change independently --
+		// confirmed live the pitcher card's right-edge anchor needs to
+		// stay put even when swapping which side its headshot sits on.
+		reverse : false,
+		// true = headshot rendered before the info block, false = after.
+		// Independent of reverse/positioning -- e.g. the pitcher card
+		// keeps reverse:true (still anchored to the row's right edge) but
+		// can have imageFirst:true too, putting its headshot on the LEFT
+		// of its own box (facing the batter card in the middle) rather
+		// than out at the screen edge.
+		imageFirst : true
 	},
 	create : function() {
 		this.inherited(arguments);
@@ -36,17 +50,19 @@ enyo.kind({
 			{ name : "name", className : "gamedayPlayerName" },
 			{ name : "statLine", className : "gamedayPlayerStatLine" }
 		]};
-		if (this.reverse) {
+		if (this.imageFirst) {
+			this.createComponent(headshotConfig);
+			this.createComponent(infoConfig);
+		} else {
 			this.createComponent(infoConfig);
 			this.createComponent(headshotConfig);
+		}
+		if (this.reverse) {
 			// Purely cosmetic (right-aligns the info text) -- NOT used for
 			// structural reordering, unlike the earlier box-direction
 			// attempt this replaced. See .gamedayPlayerCardReversed in
 			// css/GamedayView.css.
 			this.addClass("gamedayPlayerCardReversed");
-		} else {
-			this.createComponent(headshotConfig);
-			this.createComponent(infoConfig);
 		}
 		this.$.label.setContent(this.label);
 	},

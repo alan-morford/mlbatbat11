@@ -143,7 +143,73 @@ enyo
 									onclick : "acceptTermsCancel"
 								} ]
 					},
-					{ kind: "Spinner", name:"spinner", style : "position:absolute; top : 10px; right:10px;"}
+					{ kind: "Spinner", name:"spinner", style : "position:absolute; top : 10px; right:10px;"},
+					// Update-check popup -- same mechanism as the sibling
+					// usatoday project's own Application.js/UpdatePopup.js
+					// (GitHub releases API -> version compare -> Preware
+					// install handoff), adapted to this app's own established
+					// ModalDialog/openAtCenter() popup convention (see
+					// termsModal/announcementsPopup above) rather than that
+					// project's enyo.Popup + manual position:absolute
+					// centering -- this app's own ModalDialog usage already
+					// centers correctly with openAtCenter(), no equivalent
+					// workaround needed here.
+					{
+						name : "updateCheck",
+						kind : "WebService",
+						url : "https://api.github.com/repos/alan-morford/mlbatbat11/releases/latest",
+						handleAs : "json",
+						onSuccess : "gotUpdateCheck",
+						onFailure : "updateCheckFailed"
+					},
+					{
+						name : "openAppForUpdate",
+						kind : "PalmService",
+						service : "palm://com.palm.applicationManager/",
+						method : "open",
+						onSuccess : "updateAppLaunched",
+						onFailure : "updateAppLaunchFailed"
+					},
+					{
+						kind : "ModalDialog",
+						name : "updatePopup",
+						style : "height : 420px; width : 500px;",
+						dismissWithClick : false,
+						components : [
+							{
+								content : "Update Available",
+								style : "font-weight:bold; font-size:130%; margin-bottom:10px; text-align:center;"
+							},
+							{
+								name : "updateVersionLabel",
+								style : "margin-bottom:10px; text-align:center; color:#666;"
+							},
+							{
+								name : "updateChangelogScroller",
+								kind : "Scroller",
+								style : "height:280px; width:460px; border:1px solid #ccc; padding:10px; margin-bottom:10px; -webkit-box-sizing:border-box; box-sizing:border-box;",
+								components : [ { name : "updateChangelog", kind : "enyo.HtmlContent" } ]
+							},
+							{
+								kind : "enyo.HFlexBox",
+								pack : "center",
+								components : [
+									{
+										kind : "Button",
+										caption : "Cancel",
+										style : "width:150px;",
+										onclick : "updateCancelClick"
+									},
+									{
+										kind : "Button",
+										caption : "Update",
+										style : "width:150px; margin-left:20px; background-color:#64A1CA; color:white;",
+										onclick : "updateConfirmClick"
+									}
+								]
+							}
+						]
+					}
 				 ],
 
 			ready : function() {
@@ -287,7 +353,12 @@ enyo
 						"Scoreboard" : this.$.sliding.$.Scoreboard,
 						"Standings" : this.$.sliding.$.Standings,
 						"Gameday" : this.$.sliding.$.Gameday,
+						"GameSummary" : this.$.sliding.$.GameSummary,
 						"News" : this.$.sliding.$.News,
+						"AbsStats" : this.$.sliding.$.AbsStats,
+						"Teams" : this.$.sliding.$.Teams,
+						"Schedule" : this.$.sliding.$.Schedule,
+						"Videos" : this.$.sliding.$.Videos,
 						"Audio" : new mlb.AudioView(),
 						"GenericWebView" : this.$.sliding.$.GenericWebView,
 						"TermsView" : this.$.sliding.$.Terms
@@ -308,14 +379,128 @@ enyo
 			viewSelected : function() {
 				this.showViewInMiddle("Scoreboard", Views.Scoreboard);
 				this.hideRightSlidingView();
-				
+
 				//show announements
 				// show first announcement
 				if (this.extras.announcements && this.extras.announcements.length > 0) {
 					var announcement = this.extras.announcements.pop();
 					this.showAnnouncement(announcement);
 				}
+
+				// Once per cold start (this Pane's onSelectView only fires
+				// again on a later re-select, e.g. gotExtras's own
+				// selectViewByIndex(1) never re-runs after the app's first
+				// real screen appears) -- same "check once at launch, not on
+				// every windowActivated" timing as the sibling usatoday
+				// project's own Application.ready()/checkForUpdate().
+				this.checkForUpdate();
 			},
+
+			// --- Update check -- see this.$.updateCheck/updatePopup/
+			// openAppForUpdate above, same mechanism as the sibling
+			// usatoday project's own Application.js. ---
+
+			checkForUpdate : function() {
+				this.$.updateCheck.call({});
+			},
+			// Silent by design -- a GitHub API hiccup, rate limit, or the
+			// device being offline shouldn't show an error or interrupt app
+			// launch, just mean no update popup this time.
+			updateCheckFailed : function() {},
+
+			gotUpdateCheck : function(inSender, inResponse) {
+				if (!inResponse || !inResponse.tag_name) {
+					return;
+				}
+				var remoteVersion = inResponse.tag_name.replace(/^v/i, "");
+				var localVersion = enyo.fetchAppInfo()["version"];
+				if (!this.isNewerVersion(remoteVersion, localVersion)) {
+					return;
+				}
+				var ipkAsset = null;
+				var assets = inResponse.assets || [];
+				for (var i = 0; i < assets.length; i++) {
+					if (/\.ipk$/i.test(assets[i].name || "")) {
+						ipkAsset = assets[i];
+						break;
+					}
+				}
+				// No .ipk asset attached to the release (e.g. a docs-only
+				// tag) -- nothing for "Update" to actually download, so
+				// don't prompt.
+				if (!ipkAsset) {
+					return;
+				}
+				this.pendingUpdateUrl = ipkAsset.browser_download_url;
+				this.$.updateVersionLabel.setContent("Version " + remoteVersion);
+				this.$.updateChangelog.setContent(this.formatChangelog(inResponse.body || ""));
+				this.$.updatePopup.openAtCenter();
+			},
+
+			// Numeric-segment compare so "1.10.0" correctly beats "1.9.0" --
+			// a plain string compare would get that backwards.
+			isNewerVersion : function(remote, local) {
+				var r = String(remote).split("."), l = String(local).split(".");
+				var len = Math.max(r.length, l.length);
+				for (var i = 0; i < len; i++) {
+					var rv = parseInt(r[i], 10) || 0, lv = parseInt(l[i], 10) || 0;
+					if (rv > lv) { return true; }
+					if (rv < lv) { return false; }
+				}
+				return false;
+			},
+
+			// GitHub release bodies are GitHub-flavored markdown; this app
+			// has no markdown renderer, but enyo.HtmlContent already renders
+			// raw HTML elsewhere (e.g. the box score/challenge-detail HTML
+			// this app builds directly), so a small, safe subset covers the
+			// plain "## heading" / "- bullet" / "**bold**" style release
+			// notes actually written for this project.
+			formatChangelog : function(markdown) {
+				var html = String(markdown)
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;");
+				html = html
+					.replace(/\r\n/g, "\n")
+					.replace(/^##+\s*(.*)$/gm, "<strong>$1</strong>")
+					.replace(/^-\s+(.*)$/gm, "&bull;&nbsp;$1")
+					.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+					.replace(/\n/g, "<br>");
+				return html;
+			},
+
+			updateCancelClick : function() {
+				this.$.updatePopup.close();
+			},
+
+			updateConfirmClick : function() {
+				this.$.updatePopup.close();
+				if (!this.pendingUpdateUrl) {
+					return;
+				}
+				// Hand the actual download+install off to Preware rather
+				// than the system browser -- same contract the sibling
+				// usatoday project's own downloadUpdate() already uses
+				// (applicationManager "open" with type:"install"/file:<url>
+				// tells Preware to fetch and install that .ipk directly).
+				this.$.openAppForUpdate.call({
+					id : "org.webosinternals.preware",
+					params : { type : "install", file : this.pendingUpdateUrl }
+				});
+				// Preware is about to overwrite this app's own .ipk on disk,
+				// so it can't safely keep running -- give webOS a couple
+				// seconds to bring Preware to the foreground, then close
+				// this app's own card.
+				setTimeout(function() {
+					window.close();
+				}, 2000);
+			},
+			updateAppLaunched : function() {},
+			updateAppLaunchFailed : function(inSender, inResponse) {
+				console.log("openAppForUpdate failed: " + JSON.stringify(inResponse).substring(0, 200));
+			},
+
 			hasAcceptedTerms : function() {
 				return this.acceptedTerms;
 			},
@@ -324,7 +509,24 @@ enyo
 				if (this.extras && this.extras.leftnav) {
 					this.$.sliding.$.leftNav.destroyComponents();
 
-					for ( var i in this.extras.leftnav) {
+					// Plain indexed loop, NOT for...in -- confirmed live
+					// (2026-08-08) that for...in over this ARRAY was
+					// picking up two extra "entries" beyond the real ones:
+					// lib/external/Readability.js polyfills
+					// Array.prototype.includes/find as plain enumerable
+					// assignments (`Array.prototype.includes = function
+					// ...`, no Object.defineProperty with
+					// enumerable:false) on this old WebKit, which has
+					// neither natively -- for...in walks the prototype
+					// chain too, so `i` ended up "includes"/"find" on top
+					// of the real numeric indices, and
+					// this.extras.leftnav[i] for those was the polyfill
+					// FUNCTION itself, not undefined -- item.title being
+					// undefined on that still created a real (blank-
+					// captioned) CanonPeekItem. This is exactly the two
+					// blank left-nav entries the user reported seeing
+					// under Videos.
+					for (var i = 0; i < this.extras.leftnav.length; i++) {
 						var item = this.extras.leftnav[i];
 
 						var theComponent = this.$.sliding.$.leftNav
@@ -402,6 +604,17 @@ enyo
 			hideMiddleSpinner : function() {
 				// this.$.spinner.setStyle("visibility : hidden");
 				this.$.spinner.hide();
+			},
+
+			// Shows/hides views/Panels2.js's leftNavBlocker -- see
+			// that file's own comment on why this needs a dedicated
+			// blocker (a middle-pane view's own overlay can't reach
+			// the left nav at all, it lives entirely outside that
+			// view's box). Called from views/VideosView.js's
+			// showPlaybackOverlay/hidePlaybackOverlay/cancelPlayback,
+			// same open/close pairing as that view's own overlay.
+			setLeftNavBlocked : function(blocked) {
+				this.$.sliding.$.leftNavBlocker.setShowing(!!blocked);
 			},
 
 			hideRightSlidingView : function() {

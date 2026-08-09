@@ -149,6 +149,40 @@ enyo.kind( {
 	urlTemplate : "https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season={$season}"
 });
 
+// Live source for views/AbsTeamsView.js's mlb.AbsTeamRoster (the ABS Stats
+// "Teams" tab's roster/season-stats screen). Active roster + each player's
+// own current-season hitting/pitching stats in ONE call via Stats API's
+// hydrate mechanism -- confirmed live (2026-08-08 spike test, teamId 112):
+// a 26-man roster response this way is ~80KB, small enough for a direct
+// client XHR. Unlike lib/.../MLBAudioService.js's getAbsChallengeEvents
+// (routed through the Luna service specifically because ITS source payload
+// is multi-MB, see that function's own header comment), there's no
+// equivalent size risk here, so no reason for that indirection on this
+// endpoint.
+enyo.kind( {
+	name : "AbsTeamRosterStatsAPIService",
+	kind : "MLBWebService",
+	method : "GET",
+	handleAs : "json",
+	cacheExpires: 900, // 15 min -- a roster/season-stat line doesn't change minute to minute
+	urlTemplate : "https://statsapi.mlb.com/api/v1/teams/{$teamId}/roster?rosterType=active&hydrate=person(stats(type=season,group=[hitting,pitching],season={$season}))"
+});
+
+// Live source for mlb.AbsPlayerStats (tapped from mlb.AbsTeamRoster) -- one
+// player's full year-by-year stat line. `group` here is a single
+// "hitting"/"pitching" value (unlike the bracketed multi-group list above)
+// -- this view only ever wants whichever one group matches the player's own
+// primaryPosition (see lib/parsers/AbsTeamsParser.js's isPitcher), so
+// there's no reason to fetch both for every player.
+enyo.kind( {
+	name : "AbsPlayerYearByYearStatsAPIService",
+	kind : "MLBWebService",
+	method : "GET",
+	handleAs : "json",
+	cacheExpires: 900,
+	urlTemplate : "https://statsapi.mlb.com/api/v1/people/{$personId}/stats?stats=yearByYear&group={$group}"
+});
+
 // Live source for views/GamedayView.js + lib/parsers/GamedayParser.js. The
 // original GamedayView had no service kind either -- it embedded a remote
 // MLB-hosted webpage (main.config.gamedayUrl.PROD/QA,
@@ -162,4 +196,52 @@ enyo.kind( {
 	handleAs : "json",
 	cacheExpires: 0, // always fetch fresh -- score/plays change during a live game
 	urlTemplate : "https://statsapi.mlb.com/api/v1.1/game/{$gamePk}/feed/live"
+});
+
+// Live source for views/GameSummaryView.js (mlb.GameSummaryView) -- team
+// batting/pitching lines + MLB's own gameScore-ranked topPerformers for one
+// completed game. cacheExpires is long: a Final game's boxscore is done
+// changing (unlike GamedayStatsAPIService above, which is deliberately
+// always-fresh for a still-live game).
+enyo.kind( {
+	name : "GameBoxscoreAPIService",
+	kind : "MLBWebService",
+	method : "GET",
+	handleAs : "json",
+	cacheExpires: 3600,
+	urlTemplate : "https://statsapi.mlb.com/api/v1/game/{$gamePk}/boxscore"
+});
+
+// Also for views/GameSummaryView.js -- the dedicated linescore endpoint
+// returns the exact same shape as feed/live's own liveData.linescore field
+// (confirmed live, 2026-08-09), so lib/parsers/GamedayParser.js's existing
+// parseLinescore works unchanged against it directly. Far smaller than a
+// full feed/live fetch (which this view has no other reason to make for an
+// already-Final game -- see GamedayStatsAPIService above, used instead by
+// the still-live Gameday view, which genuinely needs everything else in
+// that payload).
+enyo.kind( {
+	name : "GameLinescoreAPIService",
+	kind : "MLBWebService",
+	method : "GET",
+	handleAs : "json",
+	cacheExpires: 3600,
+	urlTemplate : "https://statsapi.mlb.com/api/v1/game/{$gamePk}/linescore"
+});
+
+// Live source for views/ScheduleView.js's mlb.ScheduleCalendar -- one
+// team's games over an explicit date range (one calendar month at a time,
+// see that view's own monthDate/fetchMonth). Confirmed live (2026-08-09)
+// this range form works identically for past AND future months (MLB
+// publishes the full season schedule in advance, so a future month's games
+// come back with status.abstractGameState "Preview" and no score, same
+// response shape as a past/played month) -- no separate "upcoming" vs
+// "past" endpoint needed.
+enyo.kind( {
+	name : "TeamScheduleAPIService",
+	kind : "MLBWebService",
+	method : "GET",
+	handleAs : "json",
+	cacheExpires: 900,
+	urlTemplate : "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId={$teamId}&startDate={$startDate}&endDate={$endDate}"
 });

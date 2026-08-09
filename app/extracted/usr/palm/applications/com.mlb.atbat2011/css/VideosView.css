@@ -1,0 +1,88 @@
+/* views/VideosView.js -- ESPN highlight-clip streaming. */
+
+.videoGridStatus {
+	padding: 20px;
+	text-align: center;
+	color: #666;
+}
+
+/* 3-wide tile grid (mlb.VideosGrid) -- same float-based wrapping-grid
+   technique as css/ScoreboardView.css's .scoreboardGamesContainer/
+   .scoreboardGameBox and css/AbsTeamsView.css's .absTeamGrid, for the
+   same reason documented in both: Enyo's own -webkit-box flex kinds
+   caused inconsistent row-wrapping when nested inside a float:left grid
+   on this old WebKit. mlb.VideoTile is a plain enyo.Control with plain
+   nested Image/text children (no flex kind anywhere in the tile), matching
+   that same safe structure. 3 tiles fit this app's own ~824px middle
+   content-pane width (same width every top-level view gets, per
+   css/ScoreboardView.css's own "~790px-wide content area" comment on
+   .scoreboardGameBox) at 250px each + 14px left margins: 3*250 + 3*14 =
+   792px, comfortably under that. */
+.videoGrid {
+	overflow: hidden; /* clearfix -- children are float:left */
+}
+.videoGridTile {
+	width: 250px;
+	float: left;
+	margin: 14px 0 0 14px;
+}
+.videoGridTileThumb {
+	/* ESPN's own thumbnails are already a normal 576x324 (16:9) landscape
+	   image -- unlike the player-headshot aspect bug elsewhere in this
+	   app, width:100%/height:auto here doesn't distort anything, it's
+	   already the right shape. */
+	width: 100%;
+	height: auto;
+	display: block;
+	-webkit-border-radius: 4px;
+}
+.videoGridTileHeadline {
+	font-weight: bold;
+	font-size: 0.9em;
+	margin-top: 6px;
+}
+.videoGridTileDate {
+	font-size: 0.8em;
+	color: #777;
+	margin-top: 2px;
+}
+
+.videoLoadMoreButton {
+	display: block;
+	margin: 16px auto 20px;
+	width: 200px;
+}
+
+/* mlb.VideosView itself -- position:relative anchor for the full-view
+   playback overlay below. */
+.videosView {
+	position: relative;
+}
+
+/* Playback overlay (mlb.VideosView's playbackOverlay) -- same look/
+   purpose as the sibling `dailymotion` project's own .playbackOverlay:
+   covers this whole view (position:absolute, top/left/right/bottom:0,
+   anchored by .videosView above) with a dark, mostly-opaque background,
+   blocking every tap underneath while a download/launch is in progress.
+   Dark solid background-color (not enyo.Scrim's own translucency
+   mechanism) -- see views/VideosView.js's own header comment on why this
+   is a plain enyo.VFlexBox, not a Scrim. */
+.videoPlaybackOverlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.85);
+	z-index: 10;
+}
+.videoPlaybackStatusText {
+	color: #fff;
+	font-size: 1em;
+	margin-top: 16px;
+	text-align: center;
+}
+.videoPlaybackCancelButton {
+	margin-top: 20px;
+	width: 120px;
+}

@@ -1,0 +1,117 @@
+/* 4-wide team-logo grid (mlb.AbsTeamGrid, views/AbsTeamsView.js) -- same
+   float-based wrapping-grid technique as css/ScoreboardView.css's
+   .scoreboardGamesContainer/.scoreboardGameBox, for the same reason
+   documented there: nesting Enyo's VFlexBox/HFlexBox (-webkit-box flex
+   model) inside a float:left grid caused inconsistent row-wrapping on this
+   old WebKit. mlb.AbsTeamTile is a plain enyo.Control with plain nested
+   Image/text children (no flex kind anywhere in the tile), matching that
+   same safe structure. 4 tiles fit the 824px content width (matches
+   scoreboardPane's own width, see views/AbsStatsView.js) at 180px each +
+   16px left margins: 4*180 + 4*16 = 784px, comfortably under 824. */
+.absTeamGrid {
+	overflow: hidden; /* clearfix -- children are float:left */
+}
+.absTeamTile {
+	width: 180px;
+	float: left;
+	margin: 16px 0 0 16px;
+	text-align: center;
+}
+.absTeamTileLogo {
+	width: 100px;
+	height: 100px;
+	display: block;
+	margin: 0 auto;
+}
+.absTeamTileName {
+	font-size: 0.85em;
+	margin-top: 4px;
+	color: #333;
+}
+
+/* Team roster (mlb.AbsTeamRoster) -- two columns, position players (left)
+   / pitchers (right), each its own VFlexBox inside playersContainer's
+   HFlexBox (views/AbsTeamsView.js). absRosterColumnRight's left border is
+   the only visual divider between them -- simpler than adding a dedicated
+   spacer control for a single vertical rule. */
+.absRosterColumn {
+	padding: 0 12px;
+}
+.absRosterColumnRight {
+	border-left: 1px solid #ddd;
+}
+.absRosterSectionHeader {
+	font-weight: bold;
+	font-size: 1.1em;
+	padding: 10px 12px 4px;
+	color: #333;
+}
+.absPlayerRow {
+	padding: 8px 12px;
+	border-bottom: 1px solid #ddd;
+}
+/* MLB's headshot CDN images are naturally portrait, 213x320 (confirmed
+   live, 2026-08-08) -- NOT square. A square width/height box (the original
+   50x50/70x70 here and below) stretches every face horizontally to fill
+   it -- per direct user feedback ("players faces are stretch a bit too
+   wide"). Fixed height + a matching proportional width (height *
+   213/320 =~ 2:3) instead -- same real aspect ratio + slight (not fully
+   circular) rounding already established for headshots elsewhere in this
+   app, see css/GamedayView.css's .gamedayPlayerHeadshot/.gamedayOnDeckHeadshot. */
+.absPlayerRowHeadshot {
+	width: 33px;
+	height: 50px;
+	margin-right: 12px;
+	-webkit-border-radius: 4px;
+}
+.absPlayerRowName {
+	font-weight: bold;
+}
+.absPlayerRowStatLine {
+	font-size: 0.85em;
+	color: #666;
+}
+
+/* Player year-by-year stats (mlb.AbsPlayerStats) -- headshot+name/meta
+   header uses the same proven enyo.HFlexBox+Image+VFlexBox structure as
+   views/GamedayPlayerCard.js, not float, to avoid the same flex-in-float
+   risk noted above (not a grid here, just one image next to a text stack,
+   so there's no wrapping-grid reason to avoid Enyo's flex kinds either). */
+.absPlayerStatsHeader {
+	padding: 12px;
+	background-color: #f5f5f0;
+}
+/* Same real 213:320 aspect ratio fix as .absPlayerRowHeadshot above. */
+.absPlayerStatsHeadshot {
+	width: 47px;
+	height: 70px;
+	margin-right: 12px;
+	-webkit-border-radius: 4px;
+}
+.absPlayerStatsName {
+	font-weight: bold;
+	font-size: 1.1em;
+}
+.absPlayerStatsMeta {
+	color: #666;
+	font-size: 0.9em;
+}
+.absPlayerStatsLoading {
+	padding: 20px;
+	text-align: center;
+	color: #666;
+}
+.absPlayerStatsTable {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.85em;
+}
+.absPlayerStatsTable th, .absPlayerStatsTable td {
+	padding: 6px 8px;
+	text-align: center;
+	border-bottom: 1px solid #ddd;
+}
+.absPlayerStatsTable th {
+	background-color: #f0f0e8;
+	font-weight: bold;
+}

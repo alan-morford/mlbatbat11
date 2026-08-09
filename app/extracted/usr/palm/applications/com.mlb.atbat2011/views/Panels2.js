@@ -86,6 +86,40 @@ enyo
 										}
 
 									}, {
+										// Blocks taps on the left-nav item list while a
+										// view has something in-progress that shouldn't
+										// be interruptible by navigating away (currently
+										// just views/VideosView.js's video download/
+										// launch -- see main.setLeftNavBlocked, called
+										// from that view's showPlaybackOverlay/
+										// hidePlaybackOverlay). A SIBLING of "leftNav"
+										// here, not a child declared INSIDE it -- leftNav's
+										// own components are destroyComponents()'d and
+										// rebuilt fresh every time Main.js's
+										// configureLeftNav() runs (see that function), so
+										// a child declared here would get silently wiped
+										// out the first time that happens. Same purpose
+										// and reasoning as the sibling `dailymotion`
+										// project's own leftPaneBlocker -- a single
+										// overlay confined inside a middle-pane view (see
+										// views/VideosView.js's own playbackOverlay)
+										// can't reach this far up the tree at all, this
+										// menu lives entirely outside that view's own box.
+										name : "leftNavBlocker",
+										kind : "Control",
+										className : "leftNavBlocker",
+										// flex:0 explicitly -- this leftSlidingView
+										// column already tripped this project's own
+										// established FlexLayout gotcha once before
+										// (see enyo_flex_and_slidingpane_gotchas):
+										// an unset flex defaults to flex:1 even on a
+										// position:absolute child, silently reserving
+										// real vertical space in this column even
+										// while showing:false.
+										flex : 0,
+										showing : false,
+										onclick : "_swallowLeftNavClick"
+									}, {
 										kind : "Toolbar"
 									} ]
 						},
@@ -121,6 +155,21 @@ enyo
 										},
 										{
 											flex : 1,
+											kind : "mlb.TeamsView",
+											name : "Teams"
+										},
+										{
+											flex : 1,
+											kind : "mlb.ScheduleView",
+											name : "Schedule"
+										},
+										{
+											flex : 1,
+											kind : "mlb.VideosView",
+											name : "Videos"
+										},
+										{
+											flex : 1,
 											kind : "mlb.StandingsView",
 											name : "Standings"
 										// style: "width:100%; height: 500"
@@ -128,8 +177,23 @@ enyo
 										},
 										{
 											flex : 1,
-											kind : "mlb.GamedayView",
+											// mlb.GamedayPane (not mlb.GamedayView directly) -- a thin
+											// SlidingPane wrapper that adds the challenge-detail pane,
+											// see views/GamedayView.js's own header comment on
+											// mlb.GamedayPane for why the two are split.
+											kind : "mlb.GamedayPane",
 											name : "Gameday"
+										},
+										{
+											flex : 1,
+											// Shown instead of "Gameday" above when the tapped game is
+											// already Final -- see views/GameSummaryView.js's own header
+											// comment (mlb.GameSummaryPane is the outermost of 3 nested
+											// SlidingPanes declared in that file). Not in
+											// data/localExtras.js's leftnav, same as Gameday -- only
+											// ever reached by tapping a game.
+											kind : "mlb.GameSummaryPane",
+											name : "GameSummary"
 										},
 										{
 											flex : 1,
@@ -193,6 +257,12 @@ enyo
 		},
 		itemClicked : function() {
 			console.log("ITEM CLICKED!");
+		},
+
+		// leftNavBlocker's own onclick -- swallows a tap on the blocker
+		// itself so it doesn't fall through to whatever's underneath.
+		_swallowLeftNavClick : function() {
+			return true;
 		},
 
 		slidingSelected : function(inSender, inSliding, inLastSliding) {
