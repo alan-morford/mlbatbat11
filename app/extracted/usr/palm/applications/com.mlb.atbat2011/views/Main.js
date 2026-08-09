@@ -17,17 +17,8 @@ enyo
 						components : [ {
 							kind : "AppMenu"
 						}, {
-							caption : "MLB.com Mobile Site",
-							onclick : "mobileSiteClick"
-						}, {
-							caption : "At Bat FAQ",
-							onclick : "faqClick"
-						}, {
 							caption : "Terms and Conditions",
 							onclick : "termsAndConditionsClick"
-						}, {
-							caption : "About MLB.com",
-							onclick : "aboutClick"
 						} ]
 					},
 					{
@@ -154,11 +145,26 @@ enyo
 					// centering -- this app's own ModalDialog usage already
 					// centers correctly with openAtCenter(), no equivalent
 					// workaround needed here.
+					// Routed through com.mlb.atbat2011.service's own curl-based
+					// httpRequest (same as every other external-host call in
+					// this app -- ESPN scoreboard/news, MeTube, etc.), NOT a
+					// direct kind:"WebService" XHR to api.github.com like the
+					// sibling usatoday project's own update check uses --
+					// confirmed live (2026-08-09) the direct-XHR version never
+					// fired the popup at all (silent onFailure gives no
+					// visibility either way), while a plain curl from this
+					// same device to this exact URL over HTTPS succeeds in
+					// well under a second. This app has hit exactly this
+					// class of "direct WebKit XHR to a third-party host
+					// doesn't work reliably on this old WebKit" problem
+					// before (see mlbatbat_espn_akamai_block) -- the
+					// httpRequest relay is the already-proven fix for that
+					// whole category, not something new being tried here.
 					{
 						name : "updateCheck",
-						kind : "WebService",
-						url : "https://api.github.com/repos/alan-morford/mlbatbat11/releases/latest",
-						handleAs : "json",
+						kind : "PalmService",
+						service : "palm://com.mlb.atbat2011.service/",
+						method : "httpRequest",
 						onSuccess : "gotUpdateCheck",
 						onFailure : "updateCheckFailed"
 					},
@@ -173,42 +179,70 @@ enyo
 					{
 						kind : "ModalDialog",
 						name : "updatePopup",
-						style : "height : 420px; width : 500px;",
+						// A fixed pixel sum for title+label+scroller+buttons
+						// (tried twice, 420 then 500px) kept coming up short
+						// or leaving the changelog neither clipped nor
+						// scrollable -- confirmed live via screenshot
+						// (2026-08-09) the Scroller wasn't clipping its
+						// content AT ALL sitting in ModalDialog's own plain
+						// block-flow children (no flex context), so overflow
+						// text just spilled past the dialog's edge with the
+						// buttons stranded wherever that overflow happened
+						// to end. Fixed properly instead: ONE enyo.VFlexBox
+						// fills this whole dialog's content area, with the
+						// changelog Scroller as its flex:1 child (same
+						// proven header:flex:0/scroller:flex:1/footer:flex:0
+						// shape already used throughout this app, e.g.
+						// views/GameSummaryView.js's box score pane) --
+						// title/label/buttons take exactly the room their
+						// own content needs, and the scroller/changelog
+						// fills (and correctly clips/scrolls) whatever's
+						// left, instead of every element needing to be
+						// pixel-budgeted to sum to an exact total.
+						style : "height : 560px; width : 560px;",
 						dismissWithClick : false,
-						components : [
-							{
-								content : "Update Available",
-								style : "font-weight:bold; font-size:130%; margin-bottom:10px; text-align:center;"
-							},
-							{
-								name : "updateVersionLabel",
-								style : "margin-bottom:10px; text-align:center; color:#666;"
-							},
-							{
-								name : "updateChangelogScroller",
-								kind : "Scroller",
-								style : "height:280px; width:460px; border:1px solid #ccc; padding:10px; margin-bottom:10px; -webkit-box-sizing:border-box; box-sizing:border-box;",
-								components : [ { name : "updateChangelog", kind : "enyo.HtmlContent" } ]
-							},
-							{
-								kind : "enyo.HFlexBox",
-								pack : "center",
-								components : [
-									{
-										kind : "Button",
-										caption : "Cancel",
-										style : "width:150px;",
-										onclick : "updateCancelClick"
-									},
-									{
-										kind : "Button",
-										caption : "Update",
-										style : "width:150px; margin-left:20px; background-color:#64A1CA; color:white;",
-										onclick : "updateConfirmClick"
-									}
-								]
-							}
-						]
+						components : [ {
+							kind : "enyo.VFlexBox",
+							style : "height:520px; width:520px;",
+							components : [
+								{
+									flex : 0,
+									content : "Update Available",
+									style : "font-weight:bold; font-size:130%; margin-bottom:10px; text-align:center;"
+								},
+								{
+									flex : 0,
+									name : "updateVersionLabel",
+									style : "margin-bottom:10px; text-align:center; color:#666;"
+								},
+								{
+									flex : 1,
+									name : "updateChangelogScroller",
+									kind : "Scroller",
+									style : "border:1px solid #ccc; padding:10px; margin-bottom:10px; -webkit-box-sizing:border-box; box-sizing:border-box;",
+									components : [ { name : "updateChangelog", kind : "enyo.HtmlContent" } ]
+								},
+								{
+									flex : 0,
+									kind : "enyo.HFlexBox",
+									pack : "center",
+									components : [
+										{
+											kind : "Button",
+											caption : "Cancel",
+											style : "width:150px;",
+											onclick : "updateCancelClick"
+										},
+										{
+											kind : "Button",
+											caption : "Update",
+											style : "width:150px; margin-left:20px; background-color:#64A1CA; color:white;",
+											onclick : "updateConfirmClick"
+										}
+									]
+								}
+							]
+						} ]
 					}
 				 ],
 
@@ -401,40 +435,81 @@ enyo
 			// usatoday project's own Application.js. ---
 
 			checkForUpdate : function() {
-				this.$.updateCheck.call({});
+				SportsLogger.log("UpdateCheck", "checkForUpdate: localVersion=" + enyo.fetchAppInfo()["version"]);
+				this.$.updateCheck.call({
+					url : "https://api.github.com/repos/alan-morford/mlbatbat11/releases/latest",
+					method : "GET"
+				});
 			},
 			// Silent by design -- a GitHub API hiccup, rate limit, or the
 			// device being offline shouldn't show an error or interrupt app
-			// launch, just mean no update popup this time.
-			updateCheckFailed : function() {},
+			// launch, just mean no update popup this time. Still logged (not
+			// user-facing) so a real problem doesn't have to be diagnosed
+			// blind again.
+			updateCheckFailed : function(inSender, inResponse) {
+				SportsLogger.log("UpdateCheck", "updateCheckFailed: " + JSON.stringify(inResponse).substring(0, 300));
+			},
 
+			// inResponse here is com.mlb.atbat2011.service's httpRequest
+			// result shape ({returnValue, status, json, raw}), not the raw
+			// GitHub response directly -- see that service's own httpRequest
+			// for the contract (same one views/NewsView.js's gotNews and
+			// views/VideosView.js's gotScoreboard already consume). Wrapped
+			// in try/catch + logged at every branch (temporary, see
+			// checkForUpdate's own SportsLogger call) -- confirmed live
+			// 2026-08-09 the httpRequest call itself succeeds (service-side
+			// absDebugLog shows a real ~7.5KB response from GitHub), but the
+			// popup still never appeared with zero app-side visibility into
+			// why -- this is specifically to find out.
 			gotUpdateCheck : function(inSender, inResponse) {
-				if (!inResponse || !inResponse.tag_name) {
-					return;
-				}
-				var remoteVersion = inResponse.tag_name.replace(/^v/i, "");
-				var localVersion = enyo.fetchAppInfo()["version"];
-				if (!this.isNewerVersion(remoteVersion, localVersion)) {
-					return;
-				}
-				var ipkAsset = null;
-				var assets = inResponse.assets || [];
-				for (var i = 0; i < assets.length; i++) {
-					if (/\.ipk$/i.test(assets[i].name || "")) {
-						ipkAsset = assets[i];
-						break;
+				try {
+					var status = inResponse && inResponse.status;
+					var isSuccess = status === 0 || (status >= 200 && status < 300);
+					if (!isSuccess || !inResponse.json || !inResponse.json.tag_name) {
+						SportsLogger.log("UpdateCheck", "non-success or unparseable: status=" + status +
+							" hasJson=" + !!(inResponse && inResponse.json) +
+							" raw=" + (inResponse && inResponse.raw ? String(inResponse.raw).substring(0, 200) : "(none)"));
+						return;
 					}
+					var remoteVersion = inResponse.json.tag_name.replace(/^v/i, "");
+					var localVersion = enyo.fetchAppInfo()["version"];
+					var isNewer = this.isNewerVersion(remoteVersion, localVersion);
+					SportsLogger.log("UpdateCheck", "remoteVersion=" + remoteVersion + " localVersion=" + localVersion + " isNewer=" + isNewer);
+					if (!isNewer) {
+						return;
+					}
+					var ipkAsset = null;
+					var assets = inResponse.json.assets || [];
+					for (var i = 0; i < assets.length; i++) {
+						if (/\.ipk$/i.test(assets[i].name || "")) {
+							ipkAsset = assets[i];
+							break;
+						}
+					}
+					SportsLogger.log("UpdateCheck", "assets=" + assets.length + " ipkAsset=" + (ipkAsset ? ipkAsset.name : "(none)"));
+					// No .ipk asset attached to the release (e.g. a docs-only
+					// tag) -- nothing for "Update" to actually download, so
+					// don't prompt.
+					if (!ipkAsset) {
+						return;
+					}
+					this.pendingUpdateUrl = ipkAsset.browser_download_url;
+					// openAtCenter() FIRST, content after -- confirmed live
+					// 2026-08-09 (real stack trace via SportsLogger) that
+					// ModalDialog, like Popup, lazily creates its declared
+					// components: they don't exist until the popup has
+					// actually been opened once, so setContent() before
+					// openAtCenter() throws "Cannot call method 'setContent'
+					// of undefined". This app's OWN announcementsPopup
+					// (showAnnouncement above) already gets this order right;
+					// this just didn't match it.
+					this.$.updatePopup.openAtCenter();
+					this.$.updateVersionLabel.setContent("Version " + remoteVersion);
+					this.$.updateChangelog.setContent(this.formatChangelog(inResponse.json.body || ""));
+					SportsLogger.log("UpdateCheck", "openAtCenter() called");
+				} catch (e) {
+					SportsLogger.log("UpdateCheck", "gotUpdateCheck threw: " + (e && e.stack ? e.stack : e));
 				}
-				// No .ipk asset attached to the release (e.g. a docs-only
-				// tag) -- nothing for "Update" to actually download, so
-				// don't prompt.
-				if (!ipkAsset) {
-					return;
-				}
-				this.pendingUpdateUrl = ipkAsset.browser_download_url;
-				this.$.updateVersionLabel.setContent("Version " + remoteVersion);
-				this.$.updateChangelog.setContent(this.formatChangelog(inResponse.body || ""));
-				this.$.updatePopup.openAtCenter();
 			},
 
 			// Numeric-segment compare so "1.10.0" correctly beats "1.9.0" --
@@ -621,23 +696,6 @@ enyo
 				console.log("TRYING TO HIDE THE RIGHT SLIDING VIEW");
 				// print(this.$.sliding.$.slidingPane);
 				this.$.sliding.$.rightSlidingView.hide();
-			},
-			mobileSiteClick : function() {
-				open(this.domain);
-				// Views["Scoreboard"].hidePopups();
-			},
-			faqClick : function() {
-				//this.$.sliding.$.GenericWebView.$.genericWebViewHeader.$.title.setContent("At Bat FAQ");
-				this.$.sliding.$.GenericWebView.title="At Bat FAQ";
-				this.$.sliding.$.GenericWebView.$.webview.setUrl(this.domain + "atbat/palm/faq?y=2011&mlbtv=true&ref=palm-atbat11");
-				this.showViewInMiddle("GenericWebView");
-				this.$.sliding.$.leftNav.lastItemClicked.removeClass("clicked");
-			},
-			aboutClick : function() {
-				this.$.sliding.$.GenericWebView.title="About MLB.com";
-				this.$.sliding.$.GenericWebView.$.webview.setUrl(this.domain + "atbat/palm/about_mlb?ref=palm-atbat11");
-				this.showViewInMiddle("GenericWebView");
-				this.$.sliding.$.leftNav.lastItemClicked.removeClass("clicked");
 			},
 			termsAndConditionsClick : function() {
 				this.showViewInMiddle("Terms");
