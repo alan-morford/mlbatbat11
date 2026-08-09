@@ -38,9 +38,7 @@ never had at all.
 
 ## Requirements
 
-- An HP TouchPad (or other webOS 3.0.5 device) with
-  [webOS Community Edition](https://github.com/webosarchive) or a similar
-  modern LunaSysMgr replacement.
+- An HP TouchPad (or other webOS 3.0.5 device).
 - **A device patched for TLS 1.3** — MLB's and ESPN's current APIs are
   HTTPS-only, and stock webOS 3.0.5's networking stack can't complete a
   modern TLS handshake at all without this. See
