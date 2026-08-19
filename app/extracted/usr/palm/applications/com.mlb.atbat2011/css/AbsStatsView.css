@@ -23,37 +23,34 @@
 	padding-left: 20px;
 }
 
-/* Each challenge's row: image column | divider line | text column. CSS
-   table (same technique as views/GamedayLinescore.js's scoreTable) rather
-   than floats -- keeps every row's image aligned in one consistent
-   left-hand column instead of each one floating independently per-row. */
+/* Each challenge's row: image column | text column. CSS table (same
+   technique as views/GamedayLinescore.js's scoreTable) rather than floats.
+   width:100%/height:100% -- stretches to exactly fill its container (the
+   HtmlContent wrapper in views/GamedayView.js's mlb.GamedayChallengeDetail,
+   itself sized to match its own bordered box exactly) per direct user
+   request that the content's own bounding box match the box's dimensions
+   and "perfectly cover" it, rather than shrink-wrapping its natural
+   (smaller) size and floating centered inside leftover empty space. No
+   divider or bottom border -- this only ever renders ONE row now (the
+   popup above is the only reachable consumer left: mlb.AbsGameStats' own
+   scrolling multi-row list, views/AbsStatsView.js, is unreachable UI since
+   ABS Stats was removed from the left nav). */
 .challengeRow {
 	display: table;
-	table-layout: fixed;
 	width: 100%;
-	margin-bottom: 15px;
-	padding-bottom: 15px;
-	border-bottom: 1px solid #efefe6;
+	height: 100%;
 }
 .challengeImageCell {
 	display: table-cell;
 	width: 110px;
-	vertical-align: top;
-}
-/* The dividing line itself -- a 1px-wide table cell with just a
-   background color reads as a solid vertical rule at full row height,
-   simpler than a border on an adjacent cell (which wouldn't span the
-   image cell's own height if the two cells end up different heights). */
-.challengeDivider {
-	display: table-cell;
-	width: 1px;
-	background-color: #efefe6;
+	vertical-align: middle;
 }
 .challengeTextCell {
 	display: table-cell;
-	vertical-align: top;
+	vertical-align: middle;
 	padding-left: 10px;
 	font-size: 95%;
+	max-width: 320px;
 }
 
 /* Plate-view diagram (mlb.AbsGameStats.buildPitchLocationHtml) -- sits

@@ -1,6 +1,6 @@
 {
 	"id": "com.mlb.atbat2011",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"vendor": "MLB.com",
 	"type": "web",
 	"main": "index.html",

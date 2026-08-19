@@ -18,10 +18,6 @@ var localExtras = {
 	        	  "view":"News"
 	          },
 	          {
-	        	  "title": "ABS Stats",
-	        	  "view":"AbsStats"
-	          },
-	          {
 	        	  "title": "Teams",
 	        	  "view":"Teams"
 	          },

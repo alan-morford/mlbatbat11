@@ -2110,17 +2110,14 @@ function downloadAndConcatSegments(jobId, segmentUrls) {
 // this device's own naive-TS-concatenation bug entirely, instead of trying
 // to hand-fix it locally.
 //
-// Client-Id/server_id below are the SAME shared secret
-// MeTubeConfig.CLIENT_ID/SERVER_ID in the sibling `dailymotion` project's
-// own source (app/com.backelite.dailymotion/source/lib/dailymotion/
-// MeTubeConfig.js) -- reused here ONLY because the metube-php-
-// servicewrapper maintainer explicitly authorized it for this app too
-// (relayed via direct user instruction, 2026-08-09), not assumed. Per that
-// file's own comment, this is obfuscation (a shared client identifier), not
-// real security -- the project's own docs are explicit about that -- so
-// there's no meaningful difference between "this app has its own key" and
-// "this app reuses an authorized one" from a security standpoint, only an
-// authorization one, which is now satisfied.
+// Client-Id below is this app's OWN metube-php-servicewrapper client
+// identifier, issued 2026-08-18 -- no longer reusing the sibling
+// `dailymotion` project's shared Client-Id (see this function's own header
+// comment above for that now-superseded interim arrangement). server_id is
+// unchanged: it's the servicewrapper's own shared transport secret (same
+// value in the `dailymotion` project's MeTubeConfig.js), not a per-app
+// credential. Per that project's own comment, this is obfuscation (client
+// identification), not real security either way.
 //
 // clipUrl (NOT hlsUrl) -- an ESPN clip PAGE url
 // (https://www.espn.com/video/clip/_/id/{id}), not the raw HLS master
@@ -2133,7 +2130,7 @@ function downloadAndConcatSegments(jobId, segmentUrls) {
 // first real build should watch add.php/status.php's own responses via
 // absDebugLog below if playback doesn't work.
 var METUBE_BASE_URL = 'http://metube.webosarchive.org';
-var METUBE_CLIENT_ID = 'dailymotion8846acb0afdfa6';
+var METUBE_CLIENT_ID = 'mlb5OoHLbv7PmSBdizTwB';
 var METUBE_SERVER_ID = 'nNWrp3bnH8GBdHj';
 
 // metube-php-servicewrapper's request encoding scheme (see its own README/

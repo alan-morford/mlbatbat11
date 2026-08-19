@@ -324,8 +324,8 @@ enyo.kind( {
 	// One-hop forward to mlb.GamedayView (this kind's own owner) -- see
 	// mlb.GamedayPlayByPlay.playItemClick, which is the actual originator.
 	challengeTapped : function(play) {
-		if (this.owner && this.owner.forwardChallengeDetail) {
-			this.owner.forwardChallengeDetail(play);
+		if (this.owner && this.owner.showChallengeDetail) {
+			this.owner.showChallengeDetail(play);
 		}
 	}
 });
@@ -385,7 +385,15 @@ enyo.kind( {
 				flex : 1,
 				style : "height:618px;width:428px; background-color:transparent !important;border:none;"
 			} ]
-		}
+		},
+		// Tapped challenged-play detail -- mlb.GamedayChallengeDetail (below),
+		// a self-contained ModalDialog styled to match views/Main.js's own
+		// update-check popup (see that kind's own header comment for why:
+		// per direct user feedback, an earlier Popup+Scrim version here still
+		// looked like the old full-pane view stuffed into a smaller box, not
+		// a clean popup). Also used by views/GameSummaryView.js's own
+		// mlb.GameSummaryPlayByPlay.
+		{ name : "challengeDetail", kind : "mlb.GamedayChallengeDetail" }
 	],
 
 	// Tightened from the app-wide 15s convention (ScoreboardView/AudioView's
@@ -555,118 +563,139 @@ enyo.kind( {
 		this.$.audioPopup.openAtCenter();
 	},
 
-	// One-hop forward to mlb.GamedayPane (this kind's own owner once
-	// wrapped -- see that kind below) -- the actual originator is
-	// mlb.GamedayPlayByPlay.playItemClick, via mlb.GamedayLive.challengeTapped.
-	// Named differently from mlb.GamedayPane's own showChallengeDetail
-	// (different signature: this one has no gamePk of its own to pass,
-	// mlb.GamedayPane's version needs one) so the two don't read as the same
-	// method at a glance despite both existing on Gameday-related kinds.
-	forwardChallengeDetail : function(play) {
-		if (this.owner && this.owner.showChallengeDetail) {
-			this.owner.showChallengeDetail(this.game, play);
-		}
-	}
+	// Opens the challenge-detail popup -- see mlb.GamedayChallengeDetail
+	// below, a self-contained ModalDialog. this.game is already tracked
+	// (setGame) so there's nothing else this needs to pass along besides
+	// the tapped play itself.
+	showChallengeDetail : function(play) {
+		this.$.challengeDetail.loadChallenge(this.game, play);
+	},
 
 });
 
 // ---------------------------------------------------------------------------
-// Outer pane wrapper -- registered as the "Gameday" pane in place of
-// mlb.GamedayView directly (see views/Panels2.js and views/Main.js's Views
-// registry). SlidingPane with 2 panes, same mechanism as
-// mlb.AbsStatsView/mlb.NewsView:
-//   pane 1 (mainPane) -- the entire mlb.GamedayView above, completely
-//                        unchanged internally and nested exactly one level
-//                        deep, matching how mlb.AbsScoreboard/
-//                        mlb.AbsGameStats sit inside mlb.AbsStatsView's own
-//                        panes (views/AbsStatsView.js) -- deliberately NOT
-//                        flattening GamedayView's own Scrim/Popup/PalmService
-//                        children directly into THIS SlidingPane's top
-//                        level: SlidingPane's defaultKind is "SlidingView"
-//                        and its enyo.Pane base class specifically manages
-//                        "view" children differently from plain ones (see
-//                        the framework's containers/SlidingPane.js), so
-//                        keeping GamedayView as ONE single opaque child
-//                        avoids any risk to its own already-tuned Scrim/
-//                        Popup absolute positioning (sized in raw screen
-//                        pixels), which was never exercised living directly
-//                        inside a SlidingPane's own client HFlexBox.
-//   pane 2 (challengePane) -- a tapped challenged play's ABS Stat detail
-//                             (mlb.GamedayChallengeDetail below), reusing
-//                             AbsChallengeFormat's rendering (see
-//                             lib/parsers/AbsChallengeFormat.js).
-// External callers (views/ScoreboardView.js) still call setGame/stopPolling
-// on Views["Gameday"] exactly as before this change -- both simply forward
-// to $.main, the wrapped mlb.GamedayView instance.
-// ---------------------------------------------------------------------------
-enyo.kind({
-	name : "mlb.GamedayPane",
-	kind : "SlidingPane",
-	flex : 1,
-	multiViewMinWidth : 0,
-	components : [ {
-		name : "mainPane",
-		components : [ { name : "main", kind : "mlb.GamedayView", flex : 1 } ]
-	}, {
-		name : "challengePane",
-		components : [ { name : "challengeDetail", kind : "mlb.GamedayChallengeDetail", flex : 1 } ]
-	} ],
-
-	// Always reset back to the live game view on a fresh setGame -- same
-	// "always reset to the entry pane" spec as mlb.AbsStatsView.show/
-	// mlb.NewsView.show -- before forwarding to the wrapped view exactly as
-	// external callers already expect (views/ScoreboardView.js calls this
-	// the same way it always has).
-	setGame : function(gamePk, state) {
-		this.$.mainPane.select();
-		this.$.main.setGame(gamePk, state);
-	},
-	stopPolling : function() {
-		this.$.main.stopPolling();
-	},
-
-	showChallengeDetail : function(gamePk, play) {
-		this.$.challengeDetail.loadChallenge(gamePk, play);
-		this.$.challengePane.select();
-	}
-});
-
-// ---------------------------------------------------------------------------
-// Pane 2 above: single-challenge detail, reached only by tapping a
-// challenged play in mlb.GamedayPlayByPlay's list. Reuses
-// AbsChallengeFormat.buildChallengeRowHtml (lib/parsers/AbsChallengeFormat.js)
-// for identical rendering to mlb.AbsGameStats' own per-game challenge list
-// (views/AbsStatsView.js), fetching the SAME full-game Baseball Savant
-// challenge list via getAbsChallengeEvents (MLBAudioService.js) and then
-// picking out just the one challenge whose ab_number matches this play's
-// atBatIndex+1 -- see lib/parsers/GamedayParser.js's parsePlays for why
-// that's the right mapping (confirmed live against real data).
+// Tapped challenged-play detail. A self-contained ModalDialog (own fetch/
+// watchdog/render), used by BOTH mlb.GamedayView above (live games) and
+// views/GameSummaryView.js's mlb.GameSummaryPlayByPlay (completed games) --
+// each just calls loadChallenge(gamePk, play) on its own instance.
+//
+// Styled to match views/Main.js's own update-check popup (ModalDialog,
+// bold centered title, bordered content Scroller, centered footer button)
+// rather than trying to shrink the old full-pane view into a smaller box --
+// per direct user feedback, an earlier Popup+Scrim version here still LOOKED
+// like the old pane (a custom Header bar with an inline close button) even
+// though it opened as a popup, and looked inconsistent with the app's one
+// other confirmed-clean popup. ModalDialog handles its own scrim/modality
+// internally (see enyo.BasicPopup's scrim:true/modal:true) -- no separate
+// Scrim component needed, unlike the plain "Popup" kind audioPopup (above)
+// uses.
+//
+// The inner enyo.VFlexBox is given an EXPLICIT pixel height/width, not
+// flex:1 -- ModalDialog (like plain Popup) is not itself a flex container,
+// so a flex:1 child directly inside one has nothing to flex against and
+// collapses to near-zero height. Confirmed by reading the actual framework
+// source (enyo.Popup/BasicPopup) after an earlier version of this exact
+// popup shipped with flex:1 here and rendered as "just a grey bar" (only
+// the natural-height title text visible, the Scroller collapsed to 0) --
+// the same technique views/Main.js's own updatePopup and this file's own
+// audioPopup (audioChrome, given explicit pixel sizing rather than flex:1)
+// already use for the same reason.
+//
+// Reuses AbsChallengeFormat.buildChallengeRowHtml (lib/parsers/
+// AbsChallengeFormat.js) for identical rendering to mlb.AbsGameStats' own
+// per-game challenge list (views/AbsStatsView.js), fetching the SAME
+// full-game Baseball Savant challenge list via getAbsChallengeEvents
+// (MLBAudioService.js) and then picking out just the one challenge whose
+// ab_number matches this play's atBatIndex+1 -- see lib/parsers/
+// GamedayParser.js's parsePlays for why that's the right mapping (confirmed
+// live against real data).
 // ---------------------------------------------------------------------------
 enyo.kind({
 	name : "mlb.GamedayChallengeDetail",
-	kind : "enyo.VFlexBox",
-	flex : 1,
+	kind : "ModalDialog",
+	dismissWithClick : false,
+	style : "height:340px; width:540px;",
 	components : [ {
-		name : "header",
-		kind : "mlb.GenericWebViewHeader",
-		flex : 0
-	}, {
-		name : "scroller",
-		kind : "enyo.Scroller",
-		flex : 1,
-		className : "absGameStatsScroller",
-		components : [ {
-			name : "content",
-			kind : "enyo.HtmlContent",
-			className : "fullArticleView"
-		} ]
-	}, {
-		kind : "Toolbar",
-		height : "40px",
-		flex : 0,
-		components : [ {
-			kind : "GrabButton"
-		} ]
+		kind : "enyo.VFlexBox",
+		// align:"center" (set here) turned out to be a red herring for the
+		// left/right symmetry problem -- it only governs how THIS
+		// container's own CHILDREN (title/red box/button row, all declared
+		// at the SAME width as the container) are centered WITHIN it, and
+		// with zero width difference between container and children there
+		// was never any slack for it to act on. The real asymmetry (screenshot,
+		// 2026-08-19: left gap ~18px, right gap ~50px at width:460px) is
+		// this CONTAINER's own position within the ModalDialog's plain
+		// "client" content div, which -- confirmed via that same
+		// screenshot -- is NOT a flex container either (same class of
+		// finding as this file's "Popup is not a flex container" one),
+		// so this VFlexBox just sits flush at the content div's natural
+		// left edge regardless of its own declared width, with no real
+		// centering happening at that level at all. Rather than fight that
+		// (no way to inspect/confirm the true available content width
+		// without an on-device console), WIDENING while leaving the fixed
+		// left edge alone closes the gap difference directly: 460px ->
+		// 490px (460 + (measured right 50px - measured left 18px) = 492,
+		// rounded down slightly for safety margin against the
+		// measurement's own imprecision).
+		// margin-left:5px shifts this whole container (and everything in
+		// it -- title, red box, button row all move together) 5px right,
+		// per direct user request, without changing its own width.
+		style : "height:300px; width:495px; margin-left:5px;",
+		align : "center",
+		components : [
+			{
+				flex : 0,
+				content : "Challenge Details",
+				style : "width:495px; font-weight:bold; font-size:130%; margin-bottom:10px; text-align:center; -webkit-box-sizing:border-box; box-sizing:border-box;"
+			},
+			// Plain centering VFlexBox, NOT a Scroller -- content here is
+			// always one short challenge row (a ~120px-tall diagram plus a
+			// few lines of text), never a scrolling list (that's
+			// mlb.AbsGameStats' own separate, now-unreachable view), so
+			// there's nothing that actually needs to scroll. No pack/align
+			// centering any more -- per direct user request, the content's
+			// own bounding box (the HtmlContent below, and .challengeRow's
+			// own CSS in css/AbsStatsView.css) is now given width:100%/
+			// height:100% so it exactly fills this box instead of
+			// shrink-wrapping its natural (smaller) size and floating
+			// centered inside extra empty space. .challengeImageCell/
+			// .challengeTextCell switched to vertical-align:middle (was
+			// top) so the actual diagram+text still look vertically
+			// centered within that now-full-height row, rather than stuck
+			// to its top edge.
+			{
+				kind : "enyo.VFlexBox",
+				// margin-left:-3px shifts ONLY this box left, per direct
+				// user request -- independent of the title/button row,
+				// which stay where the container's own margin-left:5px
+				// (above) puts them. White background + rounded corners
+				// (border-radius, matching the ModalDialog's own rounded
+				// chrome) per direct user request, in place of the earlier
+				// TEMPORARY diagnostic thick red border (now reverted to a
+				// normal thin border) used to confirm layout changes were
+				// actually reaching the device.
+				style : "width:495px; height:190px; border:1px solid #ccc; border-radius:10px; -webkit-border-radius:10px; background-color:#fff; margin-bottom:10px; margin-left:-3px; -webkit-box-sizing:border-box; box-sizing:border-box;",
+				components : [ { name : "content", kind : "enyo.HtmlContent", className : "fullArticleView", style : "width:100%; height:100%; -webkit-box-sizing:border-box; box-sizing:border-box;" } ]
+			},
+			// Explicit height taller than the Button's own natural size,
+			// plus align:"center" (HFlexBox's cross-axis, i.e. vertical,
+			// alignment) -- per direct user request, moves Close off the
+			// bottom edge into the middle of the space it already had
+			// instead of hugging the bottom of it.
+			{
+				flex : 0,
+				kind : "enyo.HFlexBox",
+				pack : "center",
+				align : "center",
+				style : "width:495px; height:56px; -webkit-box-sizing:border-box; box-sizing:border-box;",
+				components : [ {
+					kind : "Button",
+					caption : "Close",
+					style : "width:150px;",
+					onclick : "closeClicked"
+				} ]
+			}
+		]
 	}, {
 		name : "getChallenges",
 		kind : "PalmService",
@@ -679,17 +708,26 @@ enyo.kind({
 	targetAtBatIndex : null,
 	watchdogTimer : null,
 
+	closeClicked : function() {
+		this.close();
+	},
+
 	// isRetry: internal -- see views/AbsStatsView.js's mlb.AbsGameStats.
 	// loadGame for the full on-device-confirmed reasoning (this device's
 	// PalmServiceBridge occasionally drops a request with no trace at all,
 	// not even a normal onFailure) -- same fix here: one silent automatic
 	// retry before actually giving up.
+	//
+	// openAtCenter() FIRST, setContent AFTER -- ModalDialog (like plain
+	// Popup) doesn't actually construct its declared children until it's
+	// been opened at least once (same lazy-child-construction gotcha this
+	// file's own openAudioPopup documents, and the exact bug
+	// mlbatbat_update_check_popup's own ModalDialog hit first).
 	loadChallenge : function(gamePk, play, isRetry) {
 		this.targetAtBatIndex = play && play.atBatIndex;
+		this.openAtCenter();
 		if (!isRetry) {
-			this.$.header.$.title.setContent("Challenge Detail");
 			this.$.content.setContent('<div class="articleTitle">Loading...</div>');
-			main.showMiddleSpinner();
 		}
 		if (this.watchdogTimer) {
 			clearTimeout(this.watchdogTimer);
@@ -707,7 +745,6 @@ enyo.kind({
 				'<div class="articleTitle">Challenge Detail</div>' +
 				'<div class="articleBody">Couldn\'t load challenge detail.</div>'
 			);
-			main.hideMiddleSpinner();
 		}, 15000);
 		this.$.getChallenges.call({ gamePk : gamePk });
 	},
@@ -717,7 +754,6 @@ enyo.kind({
 			clearTimeout(this.watchdogTimer);
 			this.watchdogTimer = null;
 		}
-		main.hideMiddleSpinner();
 		var challenges = (inResponse && inResponse.returnValue && inResponse.challenges) || [];
 		var targetAbNumber = (typeof this.targetAtBatIndex === "number") ? this.targetAtBatIndex + 1 : null;
 		var match = null;
@@ -742,7 +778,6 @@ enyo.kind({
 			clearTimeout(this.watchdogTimer);
 			this.watchdogTimer = null;
 		}
-		main.hideMiddleSpinner();
 		this.$.content.setContent(
 			'<div class="articleTitle">Challenge Detail</div>' +
 			'<div class="articleBody">Couldn\'t load challenge detail.</div>'

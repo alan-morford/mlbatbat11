@@ -389,7 +389,6 @@ enyo
 						"Gameday" : this.$.sliding.$.Gameday,
 						"GameSummary" : this.$.sliding.$.GameSummary,
 						"News" : this.$.sliding.$.News,
-						"AbsStats" : this.$.sliding.$.AbsStats,
 						"Teams" : this.$.sliding.$.Teams,
 						"Schedule" : this.$.sliding.$.Schedule,
 						"Videos" : this.$.sliding.$.Videos,

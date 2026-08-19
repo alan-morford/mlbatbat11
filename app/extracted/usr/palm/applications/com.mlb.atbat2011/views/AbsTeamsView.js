@@ -1,12 +1,12 @@
 // "Teams" -- its own top-level left-nav entry (data/localExtras.js's
 // leftnav, views/Panels2.js's panes, views/Main.js's Views registry),
-// siblings with Scoreboard/Standings/News/ABS Stats, NOT a sub-section of
-// ABS Stats -- an earlier version of this file nested it inside
-// mlb.AbsStatsView instead, corrected per direct user feedback ("Instead
-// of a teams button within ABS Stats I meant add Teams as a new entry in
-// the left side menu"). mlb.TeamsView (bottom of this file) is the
-// registered top-level kind, a thin SlidingPane wrapper exactly like
-// views/GamedayView.js's mlb.GamedayPane, around a three-deep drill-down:
+// siblings with Scoreboard/Standings/News, NOT a sub-section of the old
+// "ABS Stats" nav entry (since removed from the left nav entirely) -- an
+// earlier version of this file nested it inside mlb.AbsStatsView instead,
+// corrected per direct user feedback ("Instead of a teams button within ABS
+// Stats I meant add Teams as a new entry in the left side menu").
+// mlb.TeamsView (bottom of this file) is the registered top-level kind, a
+// thin SlidingPane wrapper around a three-deep drill-down:
 //   mlb.AbsTeamGrid   -- 4-wide logo grid, all 30 teams, no fetch needed
 //   mlb.AbsTeamRoster -- tapped team's active roster + season stats/player,
 //                        split into Position Players / Pitchers sections
@@ -409,10 +409,8 @@ enyo.kind({
 // ---------------------------------------------------------------------------
 // Outer orchestrator -- registered as the "Teams" top-level pane (see
 // views/Panels2.js's panes and views/Main.js's Views registry, both
-// alongside Scoreboard/Standings/News/AbsStats). Thin SlidingPane wrapper
-// around the three panes above, same shape as views/AbsStatsView.js's own
-// mlb.AbsStatsView orchestrator (and views/GamedayView.js's mlb.GamedayPane)
-// -- mlb.AbsTeamGrid.teamTileClicked/mlb.AbsTeamRoster.playerRowClicked
+// alongside Scoreboard/Standings/News). Thin SlidingPane wrapper around the
+// three panes above -- mlb.AbsTeamGrid.teamTileClicked/mlb.AbsTeamRoster.playerRowClicked
 // both already just call this.owner.showTeamRoster/showPlayerStats
 // generically, so nothing in those kinds needed to change when this got
 // pulled out from under mlb.AbsStatsView into its own top-level view --

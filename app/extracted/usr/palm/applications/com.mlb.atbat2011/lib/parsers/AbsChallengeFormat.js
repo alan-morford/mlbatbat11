@@ -158,14 +158,15 @@ AbsChallengeFormat.buildPitchLocationHtml = function (c) {
 		'</div>';
 };
 
-// One challenge as a full row (image column + divider + text column) --
-// the same CSS-table technique as views/GamedayLinescore.js's scoreTable.
-// Shared by mlb.AbsGameStats' full per-game list and
-// mlb.GamedayChallengeDetail's single-challenge view.
+// One challenge as a full row (image column + text column) -- the same
+// CSS-table technique as views/GamedayLinescore.js's scoreTable. Shared by
+// mlb.AbsGameStats' full per-game list and mlb.GamedayChallengeDetail's
+// single-challenge view. No divider column between the two cells -- removed
+// per direct user request (the popup's own border already frames the whole
+// row, a divider inside it too was visual clutter).
 AbsChallengeFormat.buildChallengeRowHtml = function (c) {
 	return '<div class="challengeRow">' +
 		'<div class="challengeImageCell">' + AbsChallengeFormat.buildPitchLocationHtml(c) + '</div>' +
-		'<div class="challengeDivider"></div>' +
 		'<div class="challengeTextCell">' + AbsChallengeFormat.buildChallengeTextHtml(c) + '</div>' +
 		'</div>';
 };

@@ -150,11 +150,6 @@ enyo
 										},
 										{
 											flex : 1,
-											kind : "mlb.AbsStatsView",
-											name : "AbsStats"
-										},
-										{
-											flex : 1,
 											kind : "mlb.TeamsView",
 											name : "Teams"
 										},
@@ -177,11 +172,7 @@ enyo
 										},
 										{
 											flex : 1,
-											// mlb.GamedayPane (not mlb.GamedayView directly) -- a thin
-											// SlidingPane wrapper that adds the challenge-detail pane,
-											// see views/GamedayView.js's own header comment on
-											// mlb.GamedayPane for why the two are split.
-											kind : "mlb.GamedayPane",
+											kind : "mlb.GamedayView",
 											name : "Gameday"
 										},
 										{

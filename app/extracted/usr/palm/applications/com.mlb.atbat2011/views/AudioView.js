@@ -608,7 +608,7 @@ enyo
 
 			// Mirrors resizePopup's own hostView-or-Scoreboard fallback --
 			// the two hosts don't share a close method NAME though
-			// (views/GamedayView.js's mlb.GamedayPane has closeAudioPopup,
+			// (views/GamedayView.js's mlb.GamedayView has closeAudioPopup,
 			// views/ScoreboardView.js's mlb.ScoreboardView has hidePopups),
 			// so both are tried.
 			closePopup : function() {

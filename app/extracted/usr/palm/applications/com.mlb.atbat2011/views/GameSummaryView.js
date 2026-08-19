@@ -6,24 +6,23 @@
 // the complete play list, tapped challenges opening their own detail pane)
 // for anyone who wants it.
 //
-// Three levels of nested 2-pane SlidingPane, each mirroring an
-// ALREADY-PROVEN exact shape elsewhere in this app rather than one flat
-// multi-pane SlidingPane -- deliberately, since this app has no on-device
-// console and SlidingPane's own drag/swipe-back behavior for a direct,
-// never-visited-intermediate-pane jump (e.g. selecting a 3rd sibling pane
-// straight from the 1st) isn't something that could be confirmed correct
-// by reading framework source alone. Every transition below is instead a
-// straight copy of one of these two already-shipped, confirmed-working
-// shapes:
+// Two levels of nested 2-pane SlidingPane (a tapped challenge's detail used
+// to be a third, innermost level -- now a popup instead, see
+// mlb.GameSummaryPlayByPlay below), each mirroring an ALREADY-PROVEN exact
+// shape elsewhere in this app rather than one flat multi-pane SlidingPane --
+// deliberately, since this app has no on-device console and SlidingPane's
+// own drag/swipe-back behavior for a direct, never-visited-intermediate-pane
+// jump (e.g. selecting a 3rd sibling pane straight from the 1st) isn't
+// something that could be confirmed correct by reading framework source
+// alone. Every transition below is instead a straight copy of one of these
+// two already-shipped, confirmed-working shapes:
 //   - views/NewsView.js's mlb.NewsView (articleListPane <-> articlePane,
 //     peekWidth 412) -- copied by mlb.GameSummaryPane below (mainPane <->
 //     articlePane) for the "Game Story" headline's article overlay.
-//   - views/GamedayView.js's mlb.GamedayPane (mainPane <-> challengePane,
-//     no peekWidth) -- copied TWICE: by mlb.GameSummaryView below (mainPane
-//     <-> playByPlayPane) for the Play-by-Play button, and again by
-//     mlb.GameSummaryPlayByPlay below (plays <-> challengeDetailPane,
-//     reusing mlb.GamedayChallengeDetail directly) for a tapped challenge
-//     inside that play list.
+//   - The 2-pane SlidingPane shape views/GamedayView.js's own mlb.GamedayPane
+//     used before its challenge pane was replaced with a popup (no peekWidth)
+//     -- copied by mlb.GameSummaryView below (mainPane <-> playByPlayPane)
+//     for the Play-by-Play button.
 //
 // Nesting, outermost to innermost:
 //   mlb.GameSummaryPane (registered as "GameSummary", views/Panels2.js/
@@ -34,11 +33,11 @@
 //          -> mainPane: mlb.GameSummaryContent (score/video/top players/
 //             "Game Story" link/box score -- everything this file
 //             originally was, before this restructuring)
-//          -> playByPlayPane: mlb.GameSummaryPlayByPlay
-//               -> plays: mlb.GameSummaryPlayByPlayContent (own linescore +
-//                  full-width mlb.GamedayPlayByPlay list, reused as-is)
-//               -> challengeDetailPane: mlb.GamedayChallengeDetail (reused
-//                  as-is, already fully self-contained)
+//          -> playByPlayPane: mlb.GameSummaryPlayByPlay (own linescore +
+//             full-width mlb.GamedayPlayByPlay list via
+//             mlb.GameSummaryPlayByPlayContent, reused as-is, plus
+//             mlb.GamedayChallengeDetail -- a self-contained ModalDialog --
+//             for a tapped challenge's detail)
 //     -> articlePane: mlb.ArticleReaderView (reused as-is -- same kind
 //        views/NewsView.js's own article pane uses)
 //
@@ -309,7 +308,7 @@ enyo.kind({
 	// owns playByPlayPane and has this.game already -- same "one hop per
 	// level" forwarding style already established in this app (see
 	// views/GamedayView.js's mlb.GamedayLive.challengeTapped/
-	// mlb.GamedayView.forwardChallengeDetail chain).
+	// mlb.GamedayView.showChallengeDetail chain).
 	openPlayByPlay : function () {
 		if (this.owner && this.owner.openPlayByPlay) {
 			this.owner.openPlayByPlay();
@@ -728,18 +727,16 @@ enyo.kind({
 		}
 	},
 	// Explicit button, NOT swipe -- an earlier version relied on a
-	// GrabButton here (same drag-handle mlb.GamedayChallengeDetail uses
-	// below), but confirmed live (2026-08-09) it didn't work: this pane is
-	// itself pane0 of mlb.GameSummaryPlayByPlay's OWN inner SlidingPane, so
-	// a GrabButton here binds to THAT (nearest-enclosing) SlidingPane, not
-	// the OUTER mlb.GameSummaryView SlidingPane that actually controls
-	// mainPane<->playByPlayPane -- and pane0 has nothing "behind" it within
-	// its own SlidingPane to reveal by dragging. GamedayChallengeDetail's
-	// own GrabButton works fine because IT has no such extra nesting level
-	// (challengeDetailPane's content is a flat view, not another
-	// SlidingPane). Two hops up (this.owner == mlb.GameSummaryPlayByPlay,
-	// ITS owner == mlb.GameSummaryView, which owns mainPane) rather than
-	// fighting the nested-SlidingPane drag scoping.
+	// GrabButton here, but confirmed live (2026-08-09) it didn't work: this
+	// content sat inside mlb.GameSummaryPlayByPlay's OWN inner SlidingPane
+	// at the time (since removed -- see that kind's own header comment), and
+	// a GrabButton here bound to THAT nearest-enclosing SlidingPane instead
+	// of the OUTER mlb.GameSummaryView SlidingPane that actually controls
+	// mainPane<->playByPlayPane. Two hops up (this.owner ==
+	// mlb.GameSummaryPlayByPlay, ITS owner == mlb.GameSummaryView, which
+	// owns mainPane) sidesteps that scoping issue entirely regardless of
+	// nesting, so this stayed a button even after the inner SlidingPane
+	// itself went away.
 	backClicked : function () {
 		if (this.owner && this.owner.backToSummary) {
 			this.owner.backToSummary();
@@ -747,25 +744,27 @@ enyo.kind({
 	}
 });
 
-// 2-pane SlidingPane -- exact same shape as views/GamedayView.js's own
-// mlb.GamedayPane (mainPane <-> challengePane), just with
-// mlb.GameSummaryPlayByPlayContent in place of the full live mlb.GamedayView
-// and mlb.GamedayChallengeDetail reused unchanged as the challenge pane.
+// Hosts mlb.GameSummaryPlayByPlayContent plus mlb.GamedayChallengeDetail
+// (views/GamedayView.js -- a self-contained ModalDialog, reused unchanged;
+// see that kind's own header comment) for a tapped challenged play's detail.
+// Used to be a 2-pane SlidingPane (mainPane <-> challengePane) mirroring
+// views/GamedayView.js's own now-removed mlb.GamedayPane; converted to a
+// popup for the same reason that one was (a whole extra pane wasted too much
+// screen space for one challenge's worth of text). mlb.GamedayChallengeDetail
+// manages its own open/close/scrim -- nothing extra needed here beyond
+// declaring it and forwarding the tapped play to loadChallenge.
 enyo.kind({
 	name : "mlb.GameSummaryPlayByPlay",
-	kind : "SlidingPane",
+	kind : "enyo.VFlexBox",
 	flex : 1,
-	multiViewMinWidth : 0,
 	components : [
-		{ name : "plays", components : [ { name : "content", kind : "mlb.GameSummaryPlayByPlayContent", flex : 1 } ] },
-		{ name : "challengeDetailPane", components : [ { name : "challengeDetail", kind : "mlb.GamedayChallengeDetail", flex : 1 } ] }
+		{ name : "content", kind : "mlb.GameSummaryPlayByPlayContent", flex : 1 },
+		{ name : "challengeDetail", kind : "mlb.GamedayChallengeDetail" }
 	],
 	setGame : function (gamePk, awayTeamName, homeTeamName) {
-		this.$.plays.select();
 		this.$.content.loadGame(gamePk, awayTeamName, homeTeamName);
 	},
 	showChallengeDetail : function (gamePk, play) {
-		this.$.challengeDetailPane.select();
 		this.$.challengeDetail.loadChallenge(gamePk, play);
 	},
 	// One-hop forward to mlb.GameSummaryView (this kind's own owner), which
@@ -778,8 +777,7 @@ enyo.kind({
 	}
 });
 
-// 2-pane SlidingPane -- exact same shape as mlb.GamedayPane again (mainPane
-// <-> playByPlayPane instead of <-> challengePane). Owns `game` so
+// 2-pane SlidingPane (mainPane <-> playByPlayPane). Owns `game` so
 // openPlayByPlay (forwarded one hop from mlb.GameSummaryContent's header
 // button) doesn't need it passed through the click-handler chain.
 enyo.kind({
