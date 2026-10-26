@@ -8,12 +8,35 @@ dead until repointed at current sources.
 
 ## Current state
 
-`app/` contains the original package **unextracted**: `debian-binary`,
-`control.tar.gz`, `data.tar.gz` — the raw `.ipk` structure. Nothing has been
-unpacked or explored yet. First step when starting real work: extract these
-(`ar x` or manual tar extraction) to get at `appinfo.json`, the JS/HTML/CSS
-source, and any bundled resources, the same way `cbssports/app/extracted/...`
-is laid out.
+Working restoration at **v1.2.1**, published at
+github.com/alan-morford/mlbatbat11 (see `README.md` for the feature list).
+
+- Source lives in `app/extracted/usr/palm/applications/`: the app
+  (`com.mlb.atbat2011`), its Luna service (`com.mlb.atbat2011.service`) and
+  the package (`com.mlb.atbat2011.package`). The original package files
+  (`control.tar.gz`, `data.tar.gz`) are kept in `app/` for reference.
+- Build with `./build-ipk.sh` (from WSL). It writes
+  `dist/com.mlb.atbat2011_<version>_all.ipk` and injects `packaging/postinst`.
+- Every original MLB backend is dead. Data comes from the MLB Stats API and
+  ESPN's public API. Video is relayed through MeTube. Live radio plays through
+  the service's own GStreamer pipeline after a self-service MLB (Okta) login.
+- Confirmed working on-device: Scoreboard, Gameday, Game Summary, Standings,
+  News (Readability reader), Teams, Schedule, Videos, live radio and the
+  launch-time update check.
+- The obsolete first-run Terms and Conditions modal is skipped for everyone
+  (`views/Main.js`). The app-menu entry that shows the terms is kept on purpose.
+- Orientation: `lib/Orientation.js` locks to landscape on any webOS tablet
+  (9.7" TouchPad, TouchPad Go, with or without LunaCE) and follows 180° flips
+  but never portrait. Orientation names differ per device and Luna build, and
+  the `orientationchange` position is the raw sensor reading. It's calibrated
+  at launch, so never hard-code an orientation name. Confirmed on a Go running
+  patched LunaCE. The 9.7" TouchPad and a stock-Luna Go are untested.
+- Known harmless launch noise: "Uncaught SyntaxError: Unexpected end of
+  input" and an `enyo.xhr` NETWORK_ERR. They come from sandbox-blocked file
+  loads (`bam.js` asking for `/shared/scripts/bam/bam.validation.js`, and
+  Enyo's WebView asking for `/usr/palm/command-resource-handlers.json`). They
+  fail in milliseconds and don't slow startup.
+- `SportsLogger.ENABLED` is currently `true`. Decide before a public release.
 
 ## Hardware / environment (same physical setup as `cbssports`)
 
@@ -33,17 +56,21 @@ is laid out.
   is what makes hitting live HTTPS endpoints from the device (rather than just
   from Claude's dev-time testing) feasible in the first place. Don't assume this
   TLS capability exists on a stock/unpatched TouchPad.
-- Claude has **no direct device or console access** — no live console, no
-  emulator use by default (user prefers testing on real hardware over the
-  emulator; ask before assuming otherwise). The user installs builds via
-  `palm-install.bat` themselves and reports back what they see. For debugging,
-  plan on an on-device logger (`cbssports` used `SportsLogger.js`, writing to
-  `/media/internal/...` with a `localStorage` fallback, since the FileSystem-API
-  write path was never confirmed working) — the same pattern will likely be
-  needed here, and Claude should verify data-layer logic via a Node.js harness
-  that shims the minimal `enyo.kind`/Mojo surface and loads real unmodified app
-  source, hitting live APIs to confirm the pipeline before ever handing off a
-  build.
+- Claude can reach the device over novacom from WSL. Use
+  `/mnt/c/Program Files (x86)/HP webOS/SDK/bin/novacom.exe run file:///bin/sh`
+  with a script on stdin for shell commands and log reads
+  (`/var/log/messages`; app `console.log`/`SportsLogger` lines appear there).
+  `palm-install.bat`/`palm-launch.bat` (under `cbssports/devkit/SDK/bin`) also
+  work through `powershell.exe`. Install builds when the user asks; otherwise
+  hand them off. Use `palm-install -r` before reinstalling so a stale instance
+  can't mask a change. Only one novacom session can run at a time, so never
+  leave one running in the background.
+- No emulator use by default (the user prefers real hardware; ask first). The
+  user still reports what's on screen, since there's no way to capture it.
+  Verify data-layer logic with a Node.js harness that shims the minimal
+  `enyo.kind`/Mojo surface and loads real, unmodified app source.
+- Test devices include a **TouchPad Go running LunaCE**, with a local patch to
+  LunaCE's orientation remap (see `../rotation`).
 - **Be economical with calls to free/undocumented APIs during development** —
   batch checks, cache responses to a local file and re-derive from that instead
   of re-querying, don't re-fetch "just to double-check" once a shape is confirmed.
@@ -103,14 +130,10 @@ against a real ~15-game slate via `eventsday.php`), `lookuptable.php`
 expected to be useful here either, but noted in case MLB Stats API is missing
 something this app specifically needs.
 
-## Open questions to resolve early in this project
+## Resolved early questions
 
-- What did MLB At Bat 11's original backend look like (feed domains, whether it
-  used MLB Advanced Media's own API vs. something third-party)? Check
-  `appinfo.json`/source once extracted — likely dead endpoints similar to
-  `cbssports`'s CBS feeds.
-- Does this app's core value proposition (live look-ins, radio/audio, real-time
-  play-by-play) require an active MLB.TV/At Bat subscription and auth token
-  that Claude/the user can't obtain? If so, scope may need to shrink to
-  scores/standings/news, similar to how `cbssports` ended up scoped to MLB only
-  out of its original multi-sport design.
+- **Original backend:** MLB Advanced Media's own feeds (`m.mlb.com`,
+  `gdx.mlb.com`). All are dead; bundled `data/localConfig.js` and
+  `data/localExtras.js` stand in for the config and extras services.
+- **Subscription:** live radio needs the user's own MLB login, entered in the
+  app (self-service, never baked in). Everything else is free public data.
