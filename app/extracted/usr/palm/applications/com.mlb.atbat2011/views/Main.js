@@ -7,7 +7,7 @@ enyo
 				extras : null,
 				currentAnnouncement : null,
 				domain : "",
-				acceptedTerms : false,
+				acceptedTerms : true,
 				currentMiddlePane : ""
 			},
 
@@ -260,7 +260,10 @@ enyo
 					owner : enyo.fetchAppId()
 				});*/
 				
-				this.acceptedTerms = TheCache.get("acceptedTerm") != null;
+				// MLB's 2011 Terms and Conditions are long obsolete, so the
+				// first-run acceptance modal is skipped for everyone. Startup
+				// then proceeds exactly as it did after tapping Accept.
+				this.acceptedTerms = true;
 
 				this.domain = (env.currentEnv === "PROD") ? "http://m.mlb.com/"
 						: "http://wapqa.mlb.com/";
