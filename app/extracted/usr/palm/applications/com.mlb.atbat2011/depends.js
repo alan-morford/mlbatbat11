@@ -35,6 +35,7 @@ enyo
 				"lib/Util.js",
 				"lib/LocalStorageCache.js",
 				"lib/SportsLogger.js",
+				"lib/Orientation.js",
 				"lib/AudioFlow.js",
 				"lib/doOverrides.js",
 				"lib/parsers/ScoreboardParser.js",
