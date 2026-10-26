@@ -69,8 +69,22 @@ github.com/alan-morford/mlbatbat11 (see `README.md` for the feature list).
   user still reports what's on screen, since there's no way to capture it.
   Verify data-layer logic with a Node.js harness that shims the minimal
   `enyo.kind`/Mojo surface and loads real, unmodified app source.
-- Test devices include a **TouchPad Go running LunaCE**, with a local patch to
-  LunaCE's orientation remap (see `../rotation`).
+- Test devices: a **TouchPad Go on LunaCE 4.9.10** (with a local patch to its
+  orientation remap; see `../rotation`), a **9.7" TouchPad on LunaCE 4.9.5**,
+  and a **9.7" TouchPad on webOS CE 3.1.0**. The orientation lock is confirmed
+  on all three, and earlier on a stock-Luna 9.7" TouchPad.
+- **The HP SDK's `palm-install`/`palm-launch` reject webOS CE 3.1.0** with
+  "unrecognized device version". Either use
+  [webOS SDK Redux](https://github.com/webOSArchive/webos-sdk-redux) (patched
+  version detection), or install over novacom directly: `novacom put` the IPK
+  into `/media/internal/.developer/`, then run `luna-send -n 6
+  palm://com.palm.appinstaller/installNoVerify
+  '{"subscribe":true,"target":"<ipk path>","uncompressedSize":0}'` (public
+  bus; `remove` with `{"packageName":...,"subscribe":true}` to uninstall).
+  **`luna-send` reads stdin**, and over `novacom run file:///bin/sh` that's
+  the rest of your script. Put the commands in a script file on the device and
+  run it with `exec </dev/null`, or every command after the first `luna-send`
+  is silently swallowed.
 - **Be economical with calls to free/undocumented APIs during development** —
   batch checks, cache responses to a local file and re-derive from that instead
   of re-querying, don't re-fetch "just to double-check" once a shape is confirmed.
