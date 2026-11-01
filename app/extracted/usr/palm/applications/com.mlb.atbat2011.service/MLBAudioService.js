@@ -91,11 +91,12 @@
  * entitlement alive during long-running playback. Pinged via curl POST on
  * the given interval while playing or paused.
  *
- * UNVERIFIED FOR THIS SPECIFIC DEVICE: the PulseAudio sink name
- * ('pcm_output') is carried over from Jukie's own live-confirmed value on
- * the same platform (HP TouchPad, webOS 3.0.5), not independently
- * re-verified here. If pause (which suspends this sink) doesn't work, this
- * is the first thing to check -- `pactl list sinks short` on-device.
+ * PAUSE = SIGSTOP of gst only. Never `pactl suspend-sink`: the PulseAudio
+ * sink (pcm_output) is the one every sound on the device goes through
+ * (alerts and notifications are null-sinks routed into it), so suspending it
+ * muted the whole tablet for as long as the radio sat paused. Freezing gst
+ * stops it feeding its own sink-input; resume (SIGCONT) is clean. Same fix
+ * as the SoundCloud restoration.
  */
 require = IMPORTS.require;
 var cp = require('child_process');
@@ -106,7 +107,6 @@ var GST = '/usr/bin/gst-launch-0.10';
 var CURL = '/usr/bin/curl';
 var PACTL = '/usr/bin/pactl';
 var OPENSSL = '/usr/bin/openssl'; // AES-128 HLS segment decryption -- see _decryptFile
-var SINK = 'pcm_output'; // see "UNVERIFIED" note above
 // Temp segment files go straight in /tmp (no subdirectory) -- confirmed
 // live that fs.mkdirSync() for a new /tmp/mlbaudio-segments subdirectory
 // was silently failing inside this jail on every single call (every
@@ -250,11 +250,6 @@ var MLBAudioPlayer = {
 		catch (e) { this.log('signal ' + signame + ' (' + pid + ') failed: ' + e); }
 	},
 
-	_suspendSink: function (yes) {
-		try { cp.spawn(PACTL, ['suspend-sink', SINK, yes ? '1' : '0']); }
-		catch (e) { this.log('suspend-sink ' + yes + ' failed: ' + e); }
-	},
-
 	_volRaw: function (pct) {
 		return Math.round(Math.max(0, Math.min(100, pct)) / 100 * 65536);
 	},
@@ -302,7 +297,6 @@ var MLBAudioPlayer = {
 	_kill: function () {
 		this.log('_kill: tearing down (was state=' + this.state + ', gen ' + this.gen + '->' + (this.gen + 1) + ')', true);
 		this.gen++; // supersede any in-flight process/callback chain
-		this._suspendSink(false); // never leave the output sink suspended across teardown
 		this._stopPolling();
 		this._stopHeartbeat();
 		this._stopFlushTimer();
@@ -997,8 +991,7 @@ var MLBAudioPlayer = {
 
 	pause: function () {
 		if (this.child && this.state === 'playing') {
-			this._suspendSink(true); // freeze the audio device (the actual pause)
-			this._signal('STOP');    // and freeze gst so it doesn't decode ahead
+			this._signal('STOP'); // freeze gst only -- see PAUSE note at the top
 			this.state = 'paused';
 		}
 		return this.status();
@@ -1006,7 +999,6 @@ var MLBAudioPlayer = {
 
 	resume: function () {
 		if (this.child && this.state === 'paused') {
-			this._suspendSink(false);
 			this._signal('CONT');
 			this.state = 'playing';
 		}
