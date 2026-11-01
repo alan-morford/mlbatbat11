@@ -35,7 +35,8 @@ never had at all.
 - **Live radio audio** — live MLB radio broadcasts, from the radio popup
   or straight from a game's Gameday view, played through the device's own
   GStreamer pipeline (this WebKit build's HTML5 `<audio>` can't play them).
-  Needs your own MLB.com login, entered in the app; nothing is built in.
+  Needs your own MLB.com login with a paid MLB audio subscription, entered
+  in the app; nothing is built in.
   Pausing freezes only the radio stream, so the rest of the tablet's sound
   keeps working.
 
@@ -45,16 +46,17 @@ never had at all.
   and LunaCE, and on Android through
   [Lunacy](https://github.com/webOSArchive/Lunacy). The app runs in
   landscape and follows 180° flips.
-- **A device patched for TLS 1.3** — MLB's and ESPN's current APIs are
+- **On a TouchPad, a device patched for TLS 1.3** — MLB's and ESPN's current APIs are
   HTTPS-only, and stock webOS 3.0.5's networking stack can't complete a
   modern TLS handshake at all without this. See
   [webOSArchive/OpenSSL-legacyWebOS](https://github.com/webOSArchive/OpenSSL-legacyWebOS)
-  for the patch.
+  for the patch. Not needed under Lunacy, where Android handles the
+  connections.
 - [Preware](https://github.com/webOSArchive/preware) installed, for
   in-app update notifications to be able to install a newer release
   (optional — you can always sideload a new `.ipk` manually instead).
-- An MLB.com account, for live radio only. Everything else is free public
-  data.
+- A paid MLB.com subscription, for live radio broadcasts only. Everything
+  else is free public data.
 
 ## Installation
 
