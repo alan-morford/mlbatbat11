@@ -68,7 +68,29 @@ Orientation._screenOrientation = function() {
 	}
 };
 
+// Lunacy (github.com/webOSArchive/Lunacy) runs webOS apps on Android. Its
+// PalmSystem.screenOrientation is Android's display rotation, which the
+// lock itself turns, so the flip-following below chases its own tail: each
+// re-lock rotates the screen, which reads as the tablet turning, which
+// re-locks again, and the app spins forever. Lunacy accepts "landscape"
+// and maps it to Android's sensor landscape, which already does exactly
+// what we want (landscape, follows 180-degree flips, never portrait), so
+// hand the whole job to it. LunacyNative is the Java bridge Lunacy adds to
+// every card's WebView; no real webOS device has it.
+Orientation._isLunacy = function() {
+	try {
+		return !!window.LunacyNative;
+	} catch (e) {
+		return false;
+	}
+};
+
 Orientation.lockLandscape = function() {
+	if ( Orientation._isLunacy() ) {
+		Orientation._log( "Lunacy detected, asking for sensor landscape" );
+		enyo.setAllowedOrientation( "landscape" );
+		return;
+	}
 	var o = Orientation._screenOrientation();
 	var choice = Orientation._isName( o ) ? o : Orientation.LEGACY_DEFAULT;
 	Orientation._log( "launch screenOrientation=" + o + " -> " + choice );

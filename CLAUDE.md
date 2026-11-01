@@ -8,7 +8,7 @@ dead until repointed at current sources.
 
 ## Current state
 
-Working restoration at **v1.2.1**, published at
+Working restoration at **v1.2.3**, published at
 github.com/alan-morford/mlbatbat11 (see `README.md` for the feature list).
 
 - Source lives in `app/extracted/usr/palm/applications/`: the app
@@ -29,14 +29,21 @@ github.com/alan-morford/mlbatbat11 (see `README.md` for the feature list).
   (9.7" TouchPad, TouchPad Go, with or without LunaCE) and follows 180° flips
   but never portrait. Orientation names differ per device and Luna build, and
   the `orientationchange` position is the raw sensor reading. It's calibrated
-  at launch, so never hard-code an orientation name. Confirmed on a Go running
-  patched LunaCE. The 9.7" TouchPad and a stock-Luna Go are untested.
+  at launch, so never hard-code an orientation name. Confirmed on all three
+  test devices (see below).
+- Lunacy (github.com/webOSArchive/Lunacy, webOS apps on Android): its
+  `screenOrientation` is Android's display rotation, which our own lock
+  turns, so the flip-following logic looped forever ("constant spinning").
+  `Orientation.js` detects `window.LunacyNative` and just asks for
+  `"landscape"` (Android sensor landscape). Confirmed on a Nexus 7 (2013,
+  Android 6) running Lunacy 0.8.2 release build.
 - Known harmless launch noise: "Uncaught SyntaxError: Unexpected end of
   input" and an `enyo.xhr` NETWORK_ERR. They come from sandbox-blocked file
   loads (`bam.js` asking for `/shared/scripts/bam/bam.validation.js`, and
   Enyo's WebView asking for `/usr/palm/command-resource-handlers.json`). They
   fail in milliseconds and don't slow startup.
-- `SportsLogger.ENABLED` is currently `true`. Decide before a public release.
+- `SportsLogger.ENABLED` is `false` in releases (since v1.2.2). Turn it on
+  for on-device debugging builds.
 
 ## Hardware / environment (same physical setup as `cbssports`)
 
@@ -85,6 +92,14 @@ github.com/alan-morford/mlbatbat11 (see `README.md` for the feature list).
   the rest of your script. Put the commands in a script file on the device and
   run it with `exec </dev/null`, or every command after the first `luna-send`
   is silently swallowed.
+- **Lunacy on Android** (the Nexus 7 over adb; adb here is Windows'
+  `adb.exe`): a release build ignores Lunacy's `--es install`. Instead,
+  with Lunacy in the foreground, `adb forward tcp:PORT
+  localabstract:org.webosarchive.lunacy.novacomd` and speak novacom's
+  protocol to it (put the IPK into `/media/internal/.developer/`, then run
+  a script calling `luna-send ... appinstaller/installNoVerify`). The
+  forward binds Windows localhost, so run the client with Windows `node`.
+  webOS SDK Redux's `palm-install -d lunacy` is the packaged route.
 - **Be economical with calls to free/undocumented APIs during development** —
   batch checks, cache responses to a local file and re-derive from that instead
   of re-querying, don't re-fetch "just to double-check" once a shape is confirmed.
