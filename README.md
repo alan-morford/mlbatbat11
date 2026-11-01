@@ -5,7 +5,7 @@ HP's webOS 3.0.5 (HP TouchPad), for anyone still running one of these devices in
 2026. The original app's backend was decommissioned years ago — every live-data
 path in this restoration has been repointed at MLB's own public Stats API and
 ESPN's public endpoints, and several features (Teams, Schedule, Videos, live
-radio, ABS challenge review) have been added natively that the original app
+radio, ABS challenge details) have been added natively that the original app
 never had at all.
 
 <p align="center">
@@ -20,33 +20,41 @@ never had at all.
   matchup cards) or a completed game's full **Game Summary** (score, box
   score, top performers, highlight video, recap article, and a full
   play-by-play pane of its own).
+- **ABS challenges** — in any game's play-by-play, live or completed, tap a
+  challenged pitch to see the call in a popup: who challenged it, the
+  original call, the result, and where the pitch crossed the plate.
 - **Standings** — division/league standings, updated live.
 - **News** — team-filterable news, rendered through a Readability-based
   in-app reader (no slow embedded browser).
-- **ABS Stats** — MLB's Automated Ball-Strike challenge system: a live
-  per-game tracker with full call detail (original call, overturned result,
-  pitch location) for every reviewed pitch.
 - **Teams** — browse any team's active roster (position players and
   pitchers side by side) and drill into a player's year-by-year stats.
 - **Schedule** — any team's month-by-month schedule in a calendar view, with
   final scores (W/L) for played games and start times for upcoming ones.
 - **Videos** — browse and stream recent ESPN MLB highlight clips, filterable
   by team.
-- **Live radio audio** — MLB.com Audio/Gameday Audio live radio broadcasts,
-  played natively through this device's own GStreamer-backed pipeline
-  (bypasses this WebKit build's broken HTML5 `<audio>` support entirely).
+- **Live radio audio** — live MLB radio broadcasts, from the radio popup
+  or straight from a game's Gameday view, played through the device's own
+  GStreamer pipeline (this WebKit build's HTML5 `<audio>` can't play them).
+  Needs your own MLB.com login, entered in the app; nothing is built in.
+  Pausing freezes only the radio stream, so the rest of the tablet's sound
+  keeps working.
 
 ## Requirements
 
-- An HP TouchPad (or other webOS 3.0.5 device).
+- An HP TouchPad or TouchPad Go. Tested on webOS 3.0.5, webOS CE 3.1.0
+  and LunaCE, and on Android through
+  [Lunacy](https://github.com/webOSArchive/Lunacy). The app runs in
+  landscape and follows 180° flips.
 - **A device patched for TLS 1.3** — MLB's and ESPN's current APIs are
   HTTPS-only, and stock webOS 3.0.5's networking stack can't complete a
   modern TLS handshake at all without this. See
-  [webOSArchive/OpenSSL-legacyWebOS](https://github.com/webosarchive) for the
-  patch.
-- [Preware](http://www.webos-internals.org/wiki/Preware) installed, for
+  [webOSArchive/OpenSSL-legacyWebOS](https://github.com/webOSArchive/OpenSSL-legacyWebOS)
+  for the patch.
+- [Preware](https://github.com/webOSArchive/preware) installed, for
   in-app update notifications to be able to install a newer release
   (optional — you can always sideload a new `.ipk` manually instead).
+- An MLB.com account, for live radio only. Everything else is free public
+  data.
 
 ## Installation
 
